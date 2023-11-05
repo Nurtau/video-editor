@@ -11,7 +11,7 @@ export class VideoController {
   private frameQueue: VideoFrame[] = [];
   private videoTrackBuffers: VideoTrackBuffer[] = [];
 
-  private currentTime = 20;
+  private currentTime = 0;
   private lastAdvanceTime = 0;
 
   private decodingFrameGroups = new Set<EncodedVideoChunk[]>();
@@ -57,14 +57,14 @@ export class VideoController {
     requestAnimationFrame((now) => this.advanceCurrentTime(now));
   }
 
-  private async decodeVideoFrames() {
+  private decodeVideoFrames() {
     // @TODO: handle multiple track buffer on multiple videos
     const trackBuffer = this.videoTrackBuffers[0];
 
-    const videoChunksData = trackBuffer.getVideoChunksData(this.currentTime);
-    if (!videoChunksData) return;
+    const videoChunks = trackBuffer.getVideoChunksAtTime(this.currentTime);
+    if (!videoChunks) return;
 
-    const { videoChunks, codecConfig } = videoChunksData;
+    const codecConfig = trackBuffer.getCodecConfig();
 
     if (!this.decodingFrameGroups.has(videoChunks)) {
       this.decodingFrameGroups.add(videoChunks);

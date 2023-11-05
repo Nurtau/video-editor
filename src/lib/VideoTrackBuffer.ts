@@ -4,13 +4,14 @@ interface VideoChunksGroup {
   start: number;
   end: number;
   videoChunks: EncodedVideoChunk[];
-  codecConfig: VideoDecoderConfig;
 }
 
 export class VideoTrackBuffer {
-  private videoChunksGroup: VideoChunksGroup[] = [];
+  private videoChunksGroups: VideoChunksGroup[] = [];
+  private codecConfig: VideoDecoderConfig;
 
   constructor(samples: MP4Sample[], videoDecoderConfig: VideoDecoderConfig) {
+    this.codecConfig = videoDecoderConfig;
     let currentFramesGroup: VideoChunksGroup | null = null;
 
     for (const sample of samples) {
@@ -28,9 +29,8 @@ export class VideoTrackBuffer {
           start: frame.timestamp,
           end: frameEndTs,
           videoChunks: [frame],
-          codecConfig: videoDecoderConfig,
         };
-        this.videoChunksGroup.push(currentFramesGroup);
+        this.videoChunksGroups.push(currentFramesGroup);
       } else {
         currentFramesGroup.videoChunks.push(frame);
         currentFramesGroup.start = Math.min(
@@ -42,18 +42,19 @@ export class VideoTrackBuffer {
     }
   }
 
-  getVideoChunksData(time: number) {
+  getVideoChunksAtTime(time: number) {
     const timeInMicros = Math.floor(time * 1e6);
 
-    const containingFramesGroup = this.videoChunksGroup.find((group) => {
+    const containingFramesGroup = this.videoChunksGroups.find((group) => {
       return group.start <= timeInMicros && timeInMicros < group.end;
     });
 
     if (!containingFramesGroup) return null;
 
-    return {
-      videoChunks: containingFramesGroup.videoChunks,
-      codecConfig: containingFramesGroup.codecConfig,
-    };
+    return containingFramesGroup.videoChunks;
+  }
+
+  getCodecConfig() {
+    return this.codecConfig;
   }
 }
