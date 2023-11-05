@@ -4,6 +4,7 @@ import { VideoDemuxer } from "./VideoDemuxer";
 import { VideoFrameDecoder } from "./VideoDecoder";
 import { VideoRenderer } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
+import { VideoTrackPreviewer } from "./VideoTrackPreviewer";
 
 export class VideoController {
   private frameDecoder: VideoFrameDecoder;
@@ -11,6 +12,7 @@ export class VideoController {
   private frameQueue: VideoFrame[] = [];
   private videoTrackBuffers: VideoTrackBuffer[] = [];
 
+  private videoTrackPreviewer: VideoTrackPreviewer;
   private currentTime = 0;
   private lastAdvanceTime = 0;
 
@@ -21,10 +23,15 @@ export class VideoController {
       onDecode: this.onDecodedVideoFrame,
     });
     this.renderer = new VideoRenderer();
+    this.videoTrackPreviewer = new VideoTrackPreviewer();
   }
 
   setCanvas = (canvas: HTMLCanvasElement) => {
     this.renderer.setCanvas(canvas);
+  };
+
+  setTrackPreviewerBox = (box: HTMLDivElement) => {
+    this.videoTrackPreviewer.setBox(box);
   };
 
   async setVideoArrayBuffer(arrayBuffer: ArrayBuffer | string) {
@@ -38,7 +45,7 @@ export class VideoController {
     const codecConfig = VideoFrameDecoder.buildConfig(track, trak);
     const videoTrackBuffer = new VideoTrackBuffer(samples, codecConfig);
     this.videoTrackBuffers.push(videoTrackBuffer);
-
+    this.videoTrackPreviewer.setVideoTrackBuffer(videoTrackBuffer);
     this.play();
   }
 
@@ -69,7 +76,7 @@ export class VideoController {
     if (!this.decodingFrameGroups.has(videoChunks)) {
       this.decodingFrameGroups.add(videoChunks);
       videoChunks.forEach((chunk) =>
-        this.frameDecoder.decode(chunk, codecConfig),
+        this.frameDecoder.decode(chunk, codecConfig)
       );
     }
 

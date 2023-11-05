@@ -27,6 +27,7 @@ function App() {
         }}
       ></input>
       <canvas ref={controller.setCanvas} />
+        <div  ref={controller.setTrackPreviewerBox}></div>
     </div>
   );
 }

@@ -57,4 +57,8 @@ export class VideoTrackBuffer {
   getCodecConfig() {
     return this.codecConfig;
   }
+
+   getVideoChunksGroups() {
+    return this.videoChunksGroups;
+  }
 }
