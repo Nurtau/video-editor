@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { VideoController } from "./lib/VideoController";
 import { Layout } from "./components/Layout";
+import { PlayerCanvas } from "./components/PlayerCanvas";
 
 import "./globalStyles.css";
 
@@ -30,6 +31,7 @@ function App() {
             width: "100%",
             height: "100%",
             flexDirection: "column",
+            padding: "48px",
           }}
         >
           <input
@@ -41,16 +43,7 @@ function App() {
               }
             }}
           ></input>
-          <canvas
-            ref={controller.setCanvas}
-            style={{
-              width: "90%",
-              height: "80%",
-              backgroundColor: "red",
-              display: "block",
-              lineHeight: 0,
-            }}
-          />
+          <PlayerCanvas ref={controller.setCanvasBox} />
         </div>
       </Layout.Player>
       <Layout.Track>

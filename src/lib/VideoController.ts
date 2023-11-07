@@ -26,8 +26,8 @@ export class VideoController {
     this.videoTrackPreviewer = new VideoTrackPreviewer();
   }
 
-  setCanvas = (canvas: HTMLCanvasElement) => {
-    this.renderer.setCanvas(canvas);
+  setCanvasBox = (canvasBox: HTMLDivElement) => {
+    this.renderer.setCanvasBox(canvasBox);
   };
 
   setTrackPreviewerBox = (box: HTMLDivElement) => {
@@ -76,7 +76,7 @@ export class VideoController {
     if (!this.decodingFrameGroups.has(videoChunks)) {
       this.decodingFrameGroups.add(videoChunks);
       videoChunks.forEach((chunk) =>
-        this.frameDecoder.decode(chunk, codecConfig)
+        this.frameDecoder.decode(chunk, codecConfig),
       );
     }
 
