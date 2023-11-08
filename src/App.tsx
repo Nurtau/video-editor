@@ -3,12 +3,18 @@ import { useState } from "react";
 import { VideoController } from "./lib/VideoController";
 import { Layout } from "./components/Layout";
 import { PlayerCanvas } from "./components/PlayerCanvas";
+import { IconButton } from "./components/IconButton";
 
 import "./globalStyles.css";
 
 function App() {
+  const [{ playing }, setControllerState] = useState(
+    VideoController.buildDefaultState(),
+  );
   const [{ controller, reader }] = useState(() => {
-    const controller = new VideoController();
+    const controller = new VideoController({
+      onEmit: setControllerState,
+    });
     const reader = new FileReader();
     reader.onload = () => {
       if (reader.result) {
@@ -31,7 +37,7 @@ function App() {
             width: "100%",
             height: "100%",
             flexDirection: "column",
-            padding: "48px",
+            padding: "16px",
           }}
         >
           <input
@@ -44,6 +50,20 @@ function App() {
             }}
           ></input>
           <PlayerCanvas ref={controller.setCanvasBox} />
+          <div style={{ display: "inline-block" }}>
+            <IconButton
+              name="playBackward"
+              onClick={controller.playBackward}
+            ></IconButton>
+            <IconButton
+              name={playing ? "pause" : "play"}
+              onClick={playing ? controller.pause : controller.play}
+            ></IconButton>
+            <IconButton
+              name="playForward"
+              onClick={controller.playForward}
+            ></IconButton>
+          </div>
         </div>
       </Layout.Player>
       <Layout.Track>

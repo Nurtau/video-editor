@@ -39,7 +39,7 @@ export class VideoFrameDecoder {
     });
   }
 
-  decode(videoChunk: EncodedVideoChunk, codecConfig: VideoDecoderConfig) {
+  decode = (videoChunk: EncodedVideoChunk, codecConfig: VideoDecoderConfig) => {
     if (
       this.decoder.state === "unconfigured" ||
       this.lastConfig !== codecConfig
@@ -49,5 +49,9 @@ export class VideoFrameDecoder {
     }
 
     this.decoder.decode(videoChunk);
-  }
+  };
+
+  reset = () => {
+    this.decoder.reset();
+  };
 }

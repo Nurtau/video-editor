@@ -6,7 +6,16 @@ import { VideoRenderer } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { VideoTrackPreviewer } from "./VideoTrackPreviewer";
 
+interface VideoControllerState {
+  playing: boolean;
+}
+
+interface VideoControllerProps {
+  onEmit(state: VideoControllerState): void;
+}
+
 export class VideoController {
+  private onEmit: VideoControllerProps["onEmit"];
   private frameDecoder: VideoFrameDecoder;
   private renderer: VideoRenderer;
   private frameQueue: VideoFrame[] = [];
@@ -15,10 +24,18 @@ export class VideoController {
   private videoTrackPreviewer: VideoTrackPreviewer;
   private currentTime = 0;
   private lastAdvanceTime = 0;
+  private advanceLoopId: number | null = null;
 
   private decodingFrameGroups = new Set<EncodedVideoChunk[]>();
 
-  constructor() {
+  static buildDefaultState(): VideoControllerState {
+    return {
+      playing: false,
+    };
+  }
+
+  constructor({ onEmit }: VideoControllerProps) {
+    this.onEmit = onEmit;
     this.frameDecoder = new VideoFrameDecoder({
       onDecode: this.onDecodedVideoFrame,
     });
@@ -46,13 +63,42 @@ export class VideoController {
     const videoTrackBuffer = new VideoTrackBuffer(samples, codecConfig);
     this.videoTrackBuffers.push(videoTrackBuffer);
     this.videoTrackPreviewer.setVideoTrackBuffer(videoTrackBuffer);
-    this.play();
   }
 
-  private play() {
+  play = () => {
     this.lastAdvanceTime = performance.now();
-    requestAnimationFrame((now) => this.advanceCurrentTime(now));
-  }
+    this.advanceLoopId = requestAnimationFrame((now) =>
+      this.advanceCurrentTime(now),
+    );
+    this.onEmit({ playing: true });
+  };
+
+  pause = () => {
+    if (this.advanceLoopId) {
+      cancelAnimationFrame(this.advanceLoopId);
+      this.advanceLoopId = null;
+    }
+    this.onEmit({ playing: false });
+  };
+
+  seek = (time: number) => {
+    if (this.advanceLoopId) {
+      cancelAnimationFrame(this.advanceLoopId);
+      this.advanceLoopId = null;
+    }
+    this.frameDecoder.reset();
+    this.decodingFrameGroups.clear();
+    this.currentTime = time;
+    this.play();
+  };
+
+  playForward = () => {
+    this.seek(this.currentTime + 5);
+  };
+
+  playBackward = () => {
+    this.seek(Math.max(0, this.currentTime - 5));
+  };
 
   private advanceCurrentTime(now: number) {
     this.currentTime = this.getCurrentVideoTime(now);
@@ -61,7 +107,9 @@ export class VideoController {
     this.decodeVideoFrames();
     this.renderVideoFrame();
 
-    requestAnimationFrame((now) => this.advanceCurrentTime(now));
+    this.advanceLoopId = requestAnimationFrame((now) =>
+      this.advanceCurrentTime(now),
+    );
   }
 
   private decodeVideoFrames() {
@@ -69,6 +117,7 @@ export class VideoController {
     const trackBuffer = this.videoTrackBuffers[0];
 
     const videoChunks = trackBuffer.getVideoChunksAtTime(this.currentTime);
+
     if (!videoChunks) return;
 
     const codecConfig = trackBuffer.getCodecConfig();
