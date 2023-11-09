@@ -23,6 +23,9 @@ export const controlsStyles = style({
   gridArea: "controls",
   backgroundColor: "#151419",
   border: "1px solid white",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
 });
 
 export const trackStyles = style({

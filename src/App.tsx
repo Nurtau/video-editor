@@ -28,7 +28,37 @@ function App() {
 
   return (
     <Layout.Box>
-      <Layout.Controls></Layout.Controls>
+      <Layout.Controls>
+        <div
+          className="file-upload"
+          style={{
+            width: "80%",
+            height: "80%",
+            border: "1.5px solid #2c2c31",
+            borderRadius: "10px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ color: "#8a8a8c", paddingBottom: "15px" }}>
+            Upload a mp4 file to get started.
+          </div>
+          <label className="custom-file-upload">
+            <input
+              type="file"
+              onChange={(event) => {
+                const files = event.target.files;
+                if (files) {
+                  reader.readAsArrayBuffer(files[0]);
+                }
+              }}
+            ></input>
+            Upload
+          </label>
+        </div>
+      </Layout.Controls>
       <Layout.Player>
         <div
           style={{
@@ -41,15 +71,6 @@ function App() {
             padding: "16px",
           }}
         >
-          <input
-            type="file"
-            onChange={(event) => {
-              const files = event.target.files;
-              if (files) {
-                reader.readAsArrayBuffer(files[0]);
-              }
-            }}
-          ></input>
           <PlayerCanvas ref={controller.setCanvasBox} />
           <div style={{ display: "inline-block" }}>
             <IconButton
@@ -73,12 +94,43 @@ function App() {
       <Layout.Track>
         <div
           style={{
+            width: "100%",
+            height: "20%",
+            borderBottom: "1.5px solid #2c2c31",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              // justifyContent: "space-between",
+              alignItems: "center",
+              color: "white",
+            }}
+          >
+            <div style={{ marginRight: "10px" }}>0:00.00</div>
+            <div> / </div>
+            <div style={{ marginLeft: "10px" }}>0:00.00</div>
+          </div>
+          <IconButton
+            name={"zoomIn"}
+            onClick={controller.playForward}
+          ></IconButton>
+          <IconButton
+            name={"zoomOut"}
+            onClick={controller.playForward}
+          ></IconButton>
+        </div>
+        <div
+          style={{
             maxWidth: "100%",
             overflowX: "scroll",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
-            height: "100%",
+            height: "80%",
           }}
         >
           <div

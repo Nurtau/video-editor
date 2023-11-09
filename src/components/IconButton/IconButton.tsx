@@ -3,6 +3,8 @@ import {
   Pause,
   FastForward,
   FastRewind,
+  Add,
+  Remove,
 } from "@mui/icons-material/";
 import { iconButtonStyles } from "./IconButton.css";
 
@@ -11,12 +13,14 @@ const ICONS = {
   pause: Pause,
   playForward: FastForward,
   playBackward: FastRewind,
+  zoomIn: Add,
+  zoomOut: Remove,
 };
 
 interface IconButtonProps {
   name: keyof typeof ICONS;
   onClick(): void;
-  disabled: boolean;
+  disabled?: boolean;
 }
 
 export const IconButton = ({ name, onClick, disabled }: IconButtonProps) => {
