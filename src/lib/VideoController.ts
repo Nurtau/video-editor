@@ -11,10 +11,11 @@ const MAX_CAPACITY = 25;
 
 interface VideoControllerState {
   playing: boolean;
+  videoTrackBuffers: VideoTrackBuffer[];
 }
 
 interface VideoControllerProps {
-  onEmit(state: VideoControllerState): void;
+  onEmit(state: Partial<VideoControllerState>): void;
 }
 
 export class VideoController {
@@ -40,6 +41,7 @@ export class VideoController {
   static buildDefaultState(): VideoControllerState {
     return {
       playing: false,
+      videoTrackBuffers: [],
     };
   }
 
@@ -71,6 +73,9 @@ export class VideoController {
     const codecConfig = VideoFrameDecoder.buildConfig(track, trak);
     const videoTrackBuffer = new VideoTrackBuffer(samples, codecConfig);
     this.videoTrackBuffers.push(videoTrackBuffer);
+
+    this.onEmit({ videoTrackBuffers: this.videoTrackBuffers.slice() });
+
     this.videoTrackPreviewer.setVideoTrackBuffer(videoTrackBuffer);
   }
 

@@ -16,7 +16,7 @@ const ICONS = {
 interface IconButtonProps {
   name: keyof typeof ICONS;
   onClick(): void;
-  disabled?: boolean;
+  disabled: boolean;
 }
 
 export const IconButton = ({ name, onClick, disabled }: IconButtonProps) => {

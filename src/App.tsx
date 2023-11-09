@@ -8,12 +8,13 @@ import { IconButton } from "./components/IconButton";
 import "./globalStyles.css";
 
 function App() {
-  const [{ playing }, setControllerState] = useState(
+  const [{ playing, videoTrackBuffers }, setControllerState] = useState(
     VideoController.buildDefaultState(),
   );
   const [{ controller, reader }] = useState(() => {
     const controller = new VideoController({
-      onEmit: setControllerState,
+      onEmit: (nextValues) =>
+        setControllerState((oldValues) => ({ ...oldValues, ...nextValues })),
     });
     const reader = new FileReader();
     reader.onload = () => {
@@ -54,14 +55,17 @@ function App() {
             <IconButton
               name="playBackward"
               onClick={controller.playBackward}
+              disabled={!videoTrackBuffers.length}
             ></IconButton>
             <IconButton
               name={playing ? "pause" : "play"}
               onClick={playing ? controller.pause : controller.play}
+              disabled={!videoTrackBuffers.length}
             ></IconButton>
             <IconButton
               name="playForward"
               onClick={controller.playForward}
+              disabled={!videoTrackBuffers.length}
             ></IconButton>
           </div>
         </div>

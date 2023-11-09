@@ -11,6 +11,7 @@ interface VideoChunksGroup {
 export class VideoTrackBuffer {
   private videoChunksGroups: VideoChunksGroup[] = [];
   private codecConfig: VideoDecoderConfig;
+  // @TODO: add a duration field
 
   constructor(samples: MP4Sample[], videoDecoderConfig: VideoDecoderConfig) {
     this.codecConfig = videoDecoderConfig;
