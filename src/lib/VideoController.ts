@@ -27,11 +27,15 @@ export class VideoController {
   private decodingChunks: EncodedVideoChunk[] = [];
   private videoTrackBuffers: VideoTrackBuffer[] = [];
 
+  private playing = false;
   private currentTime = 0;
   private lastAdvanceTime = 0;
+
   private advanceLoopId: number | null = null;
+  private scheduleRenderId: number | null = null;
 
   private furthestDecodingVideoChunk: EncodedVideoChunk | null = null;
+  private lastRenderedVideoFrameTs: number | null = null;
 
   static buildDefaultState(): VideoControllerState {
     return {
@@ -75,6 +79,7 @@ export class VideoController {
     this.advanceLoopId = requestAnimationFrame((now) =>
       this.advanceCurrentTime(now),
     );
+    this.playing = true;
     this.onEmit({ playing: true });
   };
 
@@ -83,6 +88,8 @@ export class VideoController {
       cancelAnimationFrame(this.advanceLoopId);
       this.advanceLoopId = null;
     }
+
+    this.playing = false;
     this.onEmit({ playing: false });
   };
 
@@ -93,7 +100,11 @@ export class VideoController {
     }
     this.resetVideo();
     this.currentTime = time;
-    this.play();
+    this.decodeVideoFrames();
+
+    if (this.playing) {
+      this.play();
+    }
   };
 
   playForward = () => {
@@ -174,11 +185,21 @@ export class VideoController {
     }
 
     this.frameQueue.push(videoFrame);
+
+    if (
+      this.lastRenderedVideoFrameTs === null &&
+      this.scheduleRenderId === null
+    ) {
+      this.scheduleRenderId = requestAnimationFrame(() =>
+        this.renderVideoFrame(),
+      );
+    }
   };
 
   private renderVideoFrame() {
-    const currentTimeInMicros = Math.floor(1e6 * this.currentTime);
+    this.resetScheduleRenderId();
 
+    const currentTimeInMicros = Math.floor(1e6 * this.currentTime);
     const frameIndexesToRemove = new Set<number>();
 
     this.frameQueue.forEach((frame, index) => {
@@ -193,7 +214,11 @@ export class VideoController {
 
     if (currentFrameIndex !== -1) {
       const currentFrame = this.frameQueue[currentFrameIndex];
-      this.renderer.draw(currentFrame);
+
+      if (this.lastRenderedVideoFrameTs !== currentFrame.timestamp) {
+        this.renderer.draw(currentFrame);
+        this.lastRenderedVideoFrameTs = currentFrame.timestamp;
+      }
       frameIndexesToRemove.add(currentFrameIndex);
     }
 
@@ -207,11 +232,20 @@ export class VideoController {
   }
 
   private resetVideo() {
+    this.resetScheduleRenderId();
     this.furthestDecodingVideoChunk = null;
+    this.lastRenderedVideoFrameTs = null;
     this.frameDecoder.reset();
     this.frameQueue.forEach((frame) => frame.close());
     this.frameQueue = [];
     this.decodingChunks = [];
+  }
+
+  private resetScheduleRenderId() {
+    if (this.scheduleRenderId !== null) {
+      cancelAnimationFrame(this.scheduleRenderId);
+      this.scheduleRenderId = null;
+    }
   }
 
   private getCurrentVideoTime(now: number) {
