@@ -1,5 +1,7 @@
 import { type MP4Sample } from "mp4box";
 
+import { VideoHelpers } from "./VideoHelpers";
+
 interface VideoChunksGroup {
   start: number;
   end: number;
@@ -42,23 +44,54 @@ export class VideoTrackBuffer {
     }
   }
 
-  getVideoChunksAtTime(time: number) {
+  getVideoChunksDependencies(time: number) {
     const timeInMicros = Math.floor(time * 1e6);
 
-    const containingFramesGroup = this.videoChunksGroups.find((group) => {
+    const containingGroup = this.videoChunksGroups.find((group) => {
       return group.start <= timeInMicros && timeInMicros < group.end;
     });
 
-    if (!containingFramesGroup) return null;
+    if (!containingGroup) return null;
 
-    return containingFramesGroup.videoChunks;
+    const frameIndexAtTime = containingGroup.videoChunks.findIndex((chunk) => {
+      return VideoHelpers.isChunkInTime(chunk, timeInMicros);
+    });
+
+    return containingGroup.videoChunks.slice(0, frameIndexAtTime + 1);
+  }
+
+  getNextVideoChunks(videoChunk: EncodedVideoChunk, maxAmount: number) {
+    const containingGroupIndex = this.videoChunksGroups.findIndex((group) => {
+      return group.videoChunks.includes(videoChunk);
+    });
+
+    if (containingGroupIndex === -1) return null;
+
+    const containingGroup = this.videoChunksGroups[containingGroupIndex];
+    const chunkIndex = containingGroup.videoChunks.indexOf(videoChunk);
+
+    if (chunkIndex === containingGroup.videoChunks.length - 1) {
+      // it means that we need to take next video chunks from next videoChunkGroup
+      if (containingGroupIndex + 1 < this.videoChunksGroups.length) {
+        const nextContainingGroup =
+          this.videoChunksGroups[containingGroupIndex + 1];
+
+        return nextContainingGroup.videoChunks.slice(0, maxAmount);
+      }
+    } else {
+      const nextVideoChunkIndex = chunkIndex + 1;
+      return containingGroup.videoChunks.slice(
+        nextVideoChunkIndex,
+        nextVideoChunkIndex + maxAmount,
+      );
+    }
   }
 
   getCodecConfig() {
     return this.codecConfig;
   }
 
-   getVideoChunksGroups() {
+  getVideoChunksGroups() {
     return this.videoChunksGroups;
   }
 }

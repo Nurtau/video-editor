@@ -5,6 +5,9 @@ import { VideoFrameDecoder } from "./VideoDecoder";
 import { VideoRenderer } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { VideoTrackPreviewer } from "./VideoTrackPreviewer";
+import { VideoHelpers } from "./VideoHelpers";
+
+const MAX_CAPACITY = 25;
 
 interface VideoControllerState {
   playing: boolean;
@@ -18,15 +21,17 @@ export class VideoController {
   private onEmit: VideoControllerProps["onEmit"];
   private frameDecoder: VideoFrameDecoder;
   private renderer: VideoRenderer;
+  private videoTrackPreviewer: VideoTrackPreviewer;
+
   private frameQueue: VideoFrame[] = [];
+  private decodingChunks: EncodedVideoChunk[] = [];
   private videoTrackBuffers: VideoTrackBuffer[] = [];
 
-  private videoTrackPreviewer: VideoTrackPreviewer;
   private currentTime = 0;
   private lastAdvanceTime = 0;
   private advanceLoopId: number | null = null;
 
-  private decodingFrameGroups = new Set<EncodedVideoChunk[]>();
+  private furthestDecodingVideoChunk: EncodedVideoChunk | null = null;
 
   static buildDefaultState(): VideoControllerState {
     return {
@@ -86,8 +91,7 @@ export class VideoController {
       cancelAnimationFrame(this.advanceLoopId);
       this.advanceLoopId = null;
     }
-    this.frameDecoder.reset();
-    this.decodingFrameGroups.clear();
+    this.resetVideo();
     this.currentTime = time;
     this.play();
   };
@@ -115,25 +119,54 @@ export class VideoController {
   private decodeVideoFrames() {
     // @TODO: handle multiple track buffer on multiple videos
     const trackBuffer = this.videoTrackBuffers[0];
-
-    const videoChunks = trackBuffer.getVideoChunksAtTime(this.currentTime);
-
-    if (!videoChunks) return;
-
     const codecConfig = trackBuffer.getCodecConfig();
 
-    if (!this.decodingFrameGroups.has(videoChunks)) {
-      this.decodingFrameGroups.add(videoChunks);
-      videoChunks.forEach((chunk) =>
-        this.frameDecoder.decode(chunk, codecConfig),
+    if (this.furthestDecodingVideoChunk === null) {
+      // it means that we need to decode dependencies first
+      const videoChunksDependencies = trackBuffer.getVideoChunksDependencies(
+        this.currentTime,
       );
+      if (!videoChunksDependencies) return;
+
+      this.decodeVideoChunks(videoChunksDependencies, codecConfig);
     }
 
-    // @TODO: decode next videoframes if they are not decoding
+    const availableSpace =
+      MAX_CAPACITY - (this.frameQueue.length + this.decodingChunks.length);
+
+    if (availableSpace > 0) {
+      const nextVideoChunks = trackBuffer.getNextVideoChunks(
+        this.furthestDecodingVideoChunk!,
+        availableSpace,
+      );
+
+      if (!nextVideoChunks) return;
+
+      this.decodeVideoChunks(nextVideoChunks, codecConfig);
+    }
+  }
+
+  private decodeVideoChunks(
+    videoChunks: EncodedVideoChunk[],
+    codecConfig: VideoDecoderConfig,
+  ) {
+    videoChunks.forEach((chunk) => {
+      this.frameDecoder.decode(chunk, codecConfig);
+      this.decodingChunks.push(chunk);
+    });
+    this.furthestDecodingVideoChunk = videoChunks[videoChunks.length - 1];
   }
 
   private onDecodedVideoFrame = (videoFrame: VideoFrame) => {
     const currentTimeInMicros = Math.floor(1e6 * this.currentTime);
+
+    const decodingChunkIndex = this.decodingChunks.findIndex(
+      (chunk) => chunk.timestamp === videoFrame.timestamp,
+    );
+
+    if (decodingChunkIndex !== -1) {
+      this.decodingChunks.splice(decodingChunkIndex, 1);
+    }
 
     if (videoFrame.timestamp + videoFrame.duration! < currentTimeInMicros) {
       videoFrame.close();
@@ -155,10 +188,7 @@ export class VideoController {
     });
 
     const currentFrameIndex = this.frameQueue.findIndex((frame) => {
-      return (
-        frame.timestamp <= currentTimeInMicros &&
-        currentTimeInMicros < frame.timestamp + frame.duration!
-      );
+      return VideoHelpers.isChunkInTime(frame, currentTimeInMicros);
     });
 
     if (currentFrameIndex !== -1) {
@@ -174,6 +204,14 @@ export class VideoController {
       }
       return true;
     });
+  }
+
+  private resetVideo() {
+    this.furthestDecodingVideoChunk = null;
+    this.frameDecoder.reset();
+    this.frameQueue.forEach((frame) => frame.close());
+    this.frameQueue = [];
+    this.decodingChunks = [];
   }
 
   private getCurrentVideoTime(now: number) {
