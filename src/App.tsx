@@ -110,6 +110,7 @@ function App() {
               alignItems: "center",
               color: "white",
             }}
+            ref={controller.setTimeBox}
           >
             <div>0:00.00</div>
             <div>/</div>
