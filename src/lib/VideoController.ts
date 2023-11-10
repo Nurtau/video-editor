@@ -4,7 +4,6 @@ import { VideoDemuxer } from "./VideoDemuxer";
 import { VideoFrameDecoder } from "./VideoDecoder";
 import { VideoRenderer } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
-import { VideoTrackPreviewer } from "./VideoTrackPreviewer";
 import { VideoHelpers } from "./VideoHelpers";
 
 const MAX_CAPACITY = 25;
@@ -22,7 +21,6 @@ export class VideoController {
   private onEmit: VideoControllerProps["onEmit"];
   private frameDecoder: VideoFrameDecoder;
   private renderer: VideoRenderer;
-  private videoTrackPreviewer: VideoTrackPreviewer;
 
   private frameQueue: VideoFrame[] = [];
   private decodingChunks: EncodedVideoChunk[] = [];
@@ -51,15 +49,10 @@ export class VideoController {
       onDecode: this.onDecodedVideoFrame,
     });
     this.renderer = new VideoRenderer();
-    this.videoTrackPreviewer = new VideoTrackPreviewer();
   }
 
   setCanvasBox = (canvasBox: HTMLDivElement) => {
     this.renderer.setCanvasBox(canvasBox);
-  };
-
-  setTrackPreviewerBox = (box: HTMLDivElement) => {
-    this.videoTrackPreviewer.setBox(box);
   };
 
   async setVideoArrayBuffer(arrayBuffer: ArrayBuffer | string) {
@@ -71,12 +64,10 @@ export class VideoController {
     const track = info.videoTracks[0];
     const trak = file.getTrackById(track.id);
     const codecConfig = VideoFrameDecoder.buildConfig(track, trak);
-    const videoTrackBuffer = new VideoTrackBuffer(samples, codecConfig);
+    const videoTrackBuffer = new VideoTrackBuffer(track, samples, codecConfig);
     this.videoTrackBuffers.push(videoTrackBuffer);
 
     this.onEmit({ videoTrackBuffers: this.videoTrackBuffers.slice() });
-
-    this.videoTrackPreviewer.setVideoTrackBuffer(videoTrackBuffer);
   }
 
   play = () => {

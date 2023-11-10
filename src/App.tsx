@@ -1,10 +1,13 @@
 import { useState } from "react";
 
 import { VideoController } from "./lib/VideoController";
-import { Layout } from "./components/Layout";
-import { PlayerCanvas } from "./components/PlayerCanvas";
-import { IconButton } from "./components/IconButton";
-import { FileUploadButton } from "./components/FileUploadButton";
+import {
+  Layout,
+  PlayerCanvas,
+  IconButton,
+  FileUploadButton,
+} from "./components/atoms";
+import { SliderWidget } from "./components/organisms";
 
 import "./globalStyles.css";
 
@@ -134,12 +137,7 @@ function App() {
             height: "80%",
           }}
         >
-          <div
-            ref={controller.setTrackPreviewerBox}
-            style={{
-              whiteSpace: "nowrap",
-            }}
-          ></div>
+          <SliderWidget videoTrackBuffers={videoTrackBuffers} />
         </div>
       </Layout.Track>
     </Layout.Box>
