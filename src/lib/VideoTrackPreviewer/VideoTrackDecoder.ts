@@ -27,4 +27,8 @@ export class VideoTrackDecoder {
         await this.decoder.flush();
         return this.stashedVideoFrames;
     }
+
+    reset = () => {
+      this.decoder.reset();
+    }
 }

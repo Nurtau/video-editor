@@ -15,6 +15,8 @@ export class VideoTrackPreviewer {
   };
 
   setVideoTrackBuffer = async (videoTrackBuffer: VideoTrackBuffer) => {
+    this.reset();
+
     const videoChunkGroups = videoTrackBuffer.getVideoChunksGroups();
     const videoKeyFrames = [];
     const codecConfig = videoTrackBuffer.getCodecConfig();
@@ -28,10 +30,6 @@ export class VideoTrackPreviewer {
         codecConfig,
       );
       this.videoFrames.push(...videoFrames);
-    }
-
-    if (this.box) {
-      this.box.innerHTML = "";
     }
 
     this.videoFrames.forEach(this.draw);
@@ -52,5 +50,14 @@ export class VideoTrackPreviewer {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(frame, 0, 0);
+  };
+
+  private reset = () => {
+    if (this.box) {
+      this.box.innerHTML = "";
+    }
+
+    this.videoFrames = [];
+    this.trackDecoder.reset();
   };
 }
