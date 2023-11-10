@@ -4,6 +4,7 @@ import { VideoController } from "./lib/VideoController";
 import { Layout } from "./components/Layout";
 import { PlayerCanvas } from "./components/PlayerCanvas";
 import { IconButton } from "./components/IconButton";
+import { FileUploadButton } from "./components/FileUploadButton";
 
 import "./globalStyles.css";
 
@@ -30,33 +31,27 @@ function App() {
     <Layout.Box>
       <Layout.Controls>
         <div
-          className="file-upload"
           style={{
-            width: "80%",
-            height: "80%",
-            border: "1.5px solid #2c2c31",
-            borderRadius: "10px",
+            width: "100%",
+            height: "100%",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
           }}
         >
-          <div style={{ color: "#8a8a8c", paddingBottom: "15px" }}>
+          <div
+            style={{
+              color: "#8a8a8c",
+              paddingBottom: "15px",
+              textAlign: "center",
+            }}
+          >
             Upload a mp4 file to get started.
           </div>
-          <label className="custom-file-upload">
-            <input
-              type="file"
-              onChange={(event) => {
-                const files = event.target.files;
-                if (files) {
-                  reader.readAsArrayBuffer(files[0]);
-                }
-              }}
-            ></input>
+          <FileUploadButton onUpload={(file) => reader.readAsArrayBuffer(file)}>
             Upload
-          </label>
+          </FileUploadButton>
         </div>
       </Layout.Controls>
       <Layout.Player>
@@ -77,17 +72,17 @@ function App() {
               name="playBackward"
               onClick={controller.playBackward}
               disabled={!videoTrackBuffers.length}
-            ></IconButton>
+            />
             <IconButton
               name={playing ? "pause" : "play"}
               onClick={playing ? controller.pause : controller.play}
               disabled={!videoTrackBuffers.length}
-            ></IconButton>
+            />
             <IconButton
               name="playForward"
               onClick={controller.playForward}
               disabled={!videoTrackBuffers.length}
-            ></IconButton>
+            />
           </div>
         </div>
       </Layout.Player>
@@ -102,26 +97,32 @@ function App() {
             alignItems: "center",
           }}
         >
+          <div style={{ flex: 1 }}>1</div>
           <div
             style={{
               display: "flex",
-              // justifyContent: "space-between",
+              flex: 1,
+              gap: "10px",
+              justifyContent: "center",
               alignItems: "center",
               color: "white",
             }}
           >
-            <div style={{ marginRight: "10px" }}>0:00.00</div>
-            <div> / </div>
-            <div style={{ marginLeft: "10px" }}>0:00.00</div>
+            <div>0:00.00</div>
+            <div>/</div>
+            <div>0:00.00</div>
           </div>
-          <IconButton
-            name={"zoomIn"}
-            onClick={controller.playForward}
-          ></IconButton>
-          <IconButton
-            name={"zoomOut"}
-            onClick={controller.playForward}
-          ></IconButton>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "end",
+            }}
+          >
+            <IconButton name="plus" onClick={controller.playForward} />
+            <IconButton name="minus" onClick={controller.playForward} />
+          </div>
         </div>
         <div
           style={{

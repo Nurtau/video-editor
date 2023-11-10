@@ -22,10 +22,7 @@ export const playerStyles = style({
 export const controlsStyles = style({
   gridArea: "controls",
   backgroundColor: "#151419",
-  border: "1px solid white",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
+  borderRight: "1px solid #2c2c31",
 });
 
 export const trackStyles = style({

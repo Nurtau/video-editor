@@ -2,7 +2,6 @@ import { style } from "@vanilla-extract/css";
 
 export const iconButtonStyles = style({
   backgroundColor: "transparent",
-  color: "white",
   border: "none",
   cursor: "pointer",
   padding: "5px",
