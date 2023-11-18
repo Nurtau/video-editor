@@ -5,7 +5,7 @@ import { VideoFrameDecoder } from "./VideoDecoder";
 import { VideoRenderer } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { VideoHelpers } from "./VideoHelpers";
-import { VideoTimeRenderer } from "./VideoTimeRenderer";
+import { videoPlayerBus } from "./VideoPlayerBus";
 
 const MAX_CAPACITY = 25;
 
@@ -22,7 +22,6 @@ export class VideoController {
   private onEmit: VideoControllerProps["onEmit"];
   private frameDecoder: VideoFrameDecoder;
   private renderer: VideoRenderer;
-  private videoTimeRenderer: VideoTimeRenderer;
 
   private frameQueue: VideoFrame[] = [];
   private decodingChunks: EncodedVideoChunk[] = [];
@@ -51,15 +50,10 @@ export class VideoController {
       onDecode: this.onDecodedVideoFrame,
     });
     this.renderer = new VideoRenderer();
-    this.videoTimeRenderer = new VideoTimeRenderer();
   }
 
   setCanvasBox = (canvasBox: HTMLDivElement) => {
     this.renderer.setCanvasBox(canvasBox);
-  };
-
-  setTimeBox = (box: HTMLDivElement) => {
-    this.videoTimeRenderer.setTimeBox(box);
   };
 
   async setVideoArrayBuffer(arrayBuffer: ArrayBuffer | string) {
@@ -75,7 +69,7 @@ export class VideoController {
     this.videoTrackBuffers.push(videoTrackBuffer);
 
     this.onEmit({ videoTrackBuffers: this.videoTrackBuffers.slice() });
-    this.videoTimeRenderer.renderDuration(videoTrackBuffer.getDuration());
+    videoPlayerBus.dispatch("totalDuration", videoTrackBuffer.getDuration());
   }
 
   play = () => {
@@ -104,7 +98,7 @@ export class VideoController {
     }
     this.resetVideo();
     this.currentTime = time;
-    this.videoTimeRenderer.renderCurrentTime(this.currentTime);
+    videoPlayerBus.dispatch("currentTime", this.currentTime);
     this.decodeVideoFrames();
 
     if (this.playing) {
@@ -124,7 +118,7 @@ export class VideoController {
     this.currentTime = this.getCurrentVideoTime(now);
     this.lastAdvanceTime = now;
 
-    this.videoTimeRenderer.renderCurrentTime(this.currentTime);
+    videoPlayerBus.dispatch("currentTime", this.currentTime);
     this.decodeVideoFrames();
     this.renderVideoFrame();
 

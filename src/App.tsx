@@ -7,6 +7,7 @@ import {
   IconButton,
   FileUploadButton,
 } from "./components/atoms";
+import { VideoTime } from "./components/molecules";
 import { SliderWidget } from "./components/organisms";
 
 import "./globalStyles.css";
@@ -100,21 +101,9 @@ function App() {
             alignItems: "center",
           }}
         >
-          <div style={{ flex: 1 }}>1</div>
-          <div
-            style={{
-              display: "flex",
-              flex: 1,
-              gap: "10px",
-              justifyContent: "center",
-              alignItems: "center",
-              color: "white",
-            }}
-            ref={controller.setTimeBox}
-          >
-            <div>0:00.00</div>
-            <div>/</div>
-            <div>0:00.00</div>
+          <div style={{ flex: 1 }}></div>
+          <div style={{ flex: 1 }}>
+            <VideoTime />
           </div>
           <div
             style={{
