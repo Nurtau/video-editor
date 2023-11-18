@@ -53,6 +53,8 @@ export const PlayerBottomControls = ({
           maxWidth: "100%",
           overflowX: "scroll",
           height: "80%",
+          paddingLeft: "32px",
+          paddingRight: "32px",
         }}
       >
         {renderPlayerSlider(timeToPx)}

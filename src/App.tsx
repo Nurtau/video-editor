@@ -95,6 +95,7 @@ function App() {
             <PlayerSlider
               timeToPx={timeToPx}
               videoTrackBuffers={videoTrackBuffers}
+              seek={controller.seek}
             />
           )}
         />

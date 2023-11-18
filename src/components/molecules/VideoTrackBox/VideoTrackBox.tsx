@@ -69,8 +69,8 @@ export const VideoTrackBox = ({ timeToPx, buffer }: VideoTrackBoxProps) => {
 
   return (
     <div className={trackBoxStyles} style={{ width: trackBoxWidth }}>
-      {previewFrames.map((frame) => (
-        <PrewiewBox frame={frame} />
+      {previewFrames.map((frame, index) => (
+        <PrewiewBox frame={frame} key={index} />
       ))}
     </div>
   );
@@ -93,14 +93,13 @@ const PrewiewBox = ({ frame }: PreviewBoxProps) => {
     const ctx = canvas.getContext("2d")!;
 
     // @TODO: preserve ratio
-
-    canvas.width = frame.displayWidth;
-    canvas.height = frame.displayHeight;
+    canvas.width = PREVIEW_DIMENSIONS.WIDTH * 4;
+    canvas.height = PREVIEW_DIMENSIONS.HEIGHT * 4;
     canvas.style.width = `${PREVIEW_DIMENSIONS.WIDTH}px`;
     canvas.style.height = `${PREVIEW_DIMENSIONS.HEIGHT}px`;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(frame, 0, 0);
+    ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
   }, [frame]);
 
   return (

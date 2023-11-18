@@ -2,10 +2,10 @@ import { style } from "@vanilla-extract/css";
 
 export const sliderBoxStyles = style({
   height: "100%",
-  paddingLeft: "32px",
-  paddingRight: "32px",
   display: "flex",
   flexDirection: "column",
+  position: "relative",
+  width: "max-content",
 });
 
 export const tracksBoxStyles = style({

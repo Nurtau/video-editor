@@ -70,6 +70,8 @@ export class VideoController {
 
     this.onEmit({ videoTrackBuffers: this.videoTrackBuffers.slice() });
     videoPlayerBus.dispatch("totalDuration", videoTrackBuffer.getDuration());
+
+    this.seek(0);
   }
 
   play = () => {

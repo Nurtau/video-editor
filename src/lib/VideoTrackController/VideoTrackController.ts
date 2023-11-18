@@ -57,10 +57,15 @@ export class VideoTrackController {
       });
     }
 
-    const videoFrames = await this.trackDecoder.decode(
-      shortenedKeyFrames,
-      videoTrackBuffer.getCodecConfig(),
-    );
+    const videoFrames: VideoFrame[] = [];
+
+    for (const frame of shortenedKeyFrames) {
+      const decodedFrames = await this.trackDecoder.decode(
+        [frame],
+        videoTrackBuffer.getCodecConfig(),
+      );
+      videoFrames.push(...decodedFrames);
+    }
 
     this.onEmit({
       videoFrames,
