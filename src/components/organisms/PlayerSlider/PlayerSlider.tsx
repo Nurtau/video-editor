@@ -17,7 +17,7 @@ export const PlayerSlider = ({
       <VideoTimelineTicks timeToPx={timeToPx} />
       <div className={tracksBoxStyles}>
         {videoTrackBuffers.map((buffer) => (
-          <VideoTrackBox key={buffer.id} buffer={buffer} />
+          <VideoTrackBox key={buffer.id} buffer={buffer} timeToPx={timeToPx} />
         ))}
       </div>
     </div>
