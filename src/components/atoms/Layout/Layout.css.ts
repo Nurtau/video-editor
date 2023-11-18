@@ -4,8 +4,8 @@ export const boxStyles = style({
   height: "100%",
   width: "100%",
   display: "grid",
-  gridTemplateRows: "repeat(3, 1fr) 120px 120px",
-  gridTemplateColumns: "150px 150px repeat(3, 1fr)",
+  gridTemplateRows: "repeat(3, 1fr) 130px 130px",
+  gridTemplateColumns: "200px 200px repeat(3, 1fr)",
   gridTemplateAreas:
     "'controls controls player player player'" +
     "'controls controls player player player'" +

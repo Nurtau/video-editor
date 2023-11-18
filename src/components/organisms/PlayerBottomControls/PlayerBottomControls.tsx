@@ -26,7 +26,7 @@ export const PlayerBottomControls = ({
         style={{
           width: "100%",
           height: "20%",
-          borderBottom: "1.5px solid #2c2c31",
+          borderBottom: "1.5px solid hsl(0, 0%, 40%)",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -44,8 +44,8 @@ export const PlayerBottomControls = ({
             justifyContent: "end",
           }}
         >
-          <IconButton name="plus" onClick={zoom} />
-          <IconButton name="minus" onClick={unzoom} />
+          <IconButton name="plus" color="hsl(0, 0%, 60%)" onClick={zoom} />
+          <IconButton name="minus" color="hsl(0, 0%, 60%)" onClick={unzoom} />
         </div>
       </div>
       <div

@@ -7,3 +7,13 @@ export const videoTimeBoxStyles = style({
   alignItems: "center",
   color: "white",
 });
+
+export const currentTimeStyles = style({
+  color: "hsl(0, 0%, 70%)",
+});
+
+export const totalDurationStyles = style({
+  color: "hsl(0, 0%, 50%)",
+});
+
+export const slashStyles = style([totalDurationStyles]);

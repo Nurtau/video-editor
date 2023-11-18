@@ -2,7 +2,12 @@ import { useRef, useEffect } from "react";
 
 import { videoPlayerBus } from "~/lib/VideoPlayerBus";
 import { VideoHelpers } from "~/lib/VideoHelpers";
-import { videoTimeBoxStyles } from "./VideoTime.css";
+import {
+  videoTimeBoxStyles,
+  currentTimeStyles,
+  totalDurationStyles,
+  slashStyles,
+} from "./VideoTime.css";
 
 export const VideoTime = () => {
   const currentTimeRef = useRef<HTMLDivElement | null>(null);
@@ -38,9 +43,13 @@ export const VideoTime = () => {
 
   return (
     <div className={videoTimeBoxStyles}>
-      <div ref={currentTimeRef}>0:00.00</div>
-      <div>/</div>
-      <div ref={totalTimeRef}>0:00.00</div>
+      <div ref={currentTimeRef} className={currentTimeStyles}>
+        0:00.00
+      </div>
+      <div className={slashStyles}>/</div>
+      <div ref={totalTimeRef} className={totalDurationStyles}>
+        0:00.00
+      </div>
     </div>
   );
 };

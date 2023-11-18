@@ -17,10 +17,10 @@ export const tickBoxStyles = style({
 export const tickStyles = style({
   height: "5px",
   width: "1px",
-  backgroundColor: "white",
+  backgroundColor: "hsl(0, 0%, 40%)",
 });
 
 export const tickTimeTextStyles = style({
   fontSize: 10,
-  color: "white",
+  color: "hsl(0, 0%, 50%)",
 });

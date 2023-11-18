@@ -67,10 +67,14 @@ function App() {
             height: "100%",
             flexDirection: "column",
             padding: "16px",
+            paddingTop: "64px",
+            gap: "16px",
           }}
         >
-          <PlayerCanvas ref={controller.setCanvasBox} />
-          <div style={{ display: "inline-block" }}>
+          <div style={{ flex: "1", width: "100%" }}>
+            <PlayerCanvas ref={controller.setCanvasBox} />
+          </div>
+          <div>
             <IconButton
               name="playBackward"
               onClick={controller.playBackward}
