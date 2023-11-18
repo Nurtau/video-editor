@@ -43,7 +43,12 @@ class VideoPlayerBus {
     }
 
     const nextListeners = listeners.filter((fn) => fn !== listener);
-    this.subscriptionsMap.set(event, nextListeners);
+
+    if (nextListeners.length === 0) {
+      this.subscriptionsMap.delete(event);
+    } else {
+      this.subscriptionsMap.set(event, nextListeners);
+    }
   };
 }
 

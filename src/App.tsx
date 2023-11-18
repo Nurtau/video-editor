@@ -7,8 +7,7 @@ import {
   IconButton,
   FileUploadButton,
 } from "./components/atoms";
-import { VideoTime } from "./components/molecules";
-import { SliderWidget } from "./components/organisms";
+import { PlayerSlider, PlayerBottomControls } from "./components/organisms";
 
 import "./globalStyles.css";
 
@@ -91,44 +90,14 @@ function App() {
         </div>
       </Layout.Player>
       <Layout.Track>
-        <div
-          style={{
-            width: "100%",
-            height: "20%",
-            borderBottom: "1.5px solid #2c2c31",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ flex: 1 }}></div>
-          <div style={{ flex: 1 }}>
-            <VideoTime />
-          </div>
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "end",
-            }}
-          >
-            <IconButton name="plus" onClick={controller.playForward} />
-            <IconButton name="minus" onClick={controller.playForward} />
-          </div>
-        </div>
-        <div
-          style={{
-            maxWidth: "100%",
-            overflowX: "scroll",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            height: "80%",
-          }}
-        >
-          <SliderWidget videoTrackBuffers={videoTrackBuffers} />
-        </div>
+        <PlayerBottomControls
+          renderPlayerSlider={(timeToPx) => (
+            <PlayerSlider
+              timeToPx={timeToPx}
+              videoTrackBuffers={videoTrackBuffers}
+            />
+          )}
+        />
       </Layout.Track>
     </Layout.Box>
   );
