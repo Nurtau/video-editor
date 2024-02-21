@@ -132,6 +132,21 @@ declare module "mp4box" {
       options?: { nbSamples?: number; rapAlignment?: number },
     ): void;
     getTrackById(trackId: number): Trak;
+    save(name: string): void;
+    addTrack(options: {
+      width?: number;
+      height?: number;
+      timescale?: number;
+      avcDecoderConfigRecord?: BufferSource;
+    }): number;
+    addSample(
+      trackId: number,
+      data: Uint8Array,
+      options: {
+        duration: number;
+        is_sync: boolean;
+      },
+    ): void;
   }
 
   export function createFile(): MP4File;

@@ -16,6 +16,7 @@ export const FileUploadButton = ({
       <input
         className={fileInputStyles}
         type="file"
+        accept="video/mp4"
         onChange={(event) => {
           const files = event.target.files;
           if (files && files.length > 0) {

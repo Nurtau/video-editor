@@ -5,6 +5,7 @@ import {
   FastRewind,
   Add,
   Remove,
+  Download,
 } from "@mui/icons-material/";
 import { iconButtonStyles } from "./IconButton.css";
 
@@ -15,6 +16,7 @@ const ICONS = {
   playBackward: FastRewind,
   plus: Add,
   minus: Remove,
+  download: Download,
 };
 
 interface IconButtonProps {

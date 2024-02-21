@@ -55,6 +55,11 @@ function App() {
           <FileUploadButton onUpload={(file) => reader.readAsArrayBuffer(file)}>
             Upload
           </FileUploadButton>
+          <IconButton
+            name="download"
+            onClick={controller.exportVideo}
+            disabled={!videoTrackBuffers.length}
+          />
         </div>
       </Layout.Controls>
       <Layout.Player>

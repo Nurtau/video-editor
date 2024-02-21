@@ -1,11 +1,12 @@
 import { type MP4ArrayBuffer } from "mp4box";
 
 import { VideoDemuxer } from "./VideoDemuxer";
-import { VideoFrameDecoder } from "./VideoDecoder";
+import { VideoFrameDecoder } from "./VideoFrameDecoder";
 import { VideoRenderer } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { VideoHelpers } from "./VideoHelpers";
 import { videoPlayerBus } from "./VideoPlayerBus";
+import { VideoExporter } from "./VideoExporter";
 
 const MAX_CAPACITY = 25;
 
@@ -37,6 +38,8 @@ export class VideoController {
   private furthestDecodingVideoChunk: EncodedVideoChunk | null = null;
   private lastRenderedVideoFrameTs: number | null = null;
 
+  private exporter: VideoExporter;
+
   static buildDefaultState(): VideoControllerState {
     return {
       playing: false,
@@ -50,13 +53,14 @@ export class VideoController {
       onDecode: this.onDecodedVideoFrame,
     });
     this.renderer = new VideoRenderer();
+    this.exporter = new VideoExporter();
   }
 
   setCanvasBox = (canvasBox: HTMLDivElement) => {
     this.renderer.setCanvasBox(canvasBox);
   };
 
-  async setVideoArrayBuffer(arrayBuffer: ArrayBuffer | string) {
+  setVideoArrayBuffer = async (arrayBuffer: ArrayBuffer | string) => {
     const demuxer = new VideoDemuxer(arrayBuffer as MP4ArrayBuffer);
     const info = await demuxer.getInfo();
     const samples = await demuxer.getSamples();
@@ -72,7 +76,11 @@ export class VideoController {
     videoPlayerBus.dispatch("totalDuration", videoTrackBuffer.getDuration());
 
     this.seek(0);
-  }
+  };
+
+  exportVideo = async () => {
+    this.exporter.exportVideo(this.videoTrackBuffers);
+  };
 
   play = () => {
     this.lastAdvanceTime = performance.now();

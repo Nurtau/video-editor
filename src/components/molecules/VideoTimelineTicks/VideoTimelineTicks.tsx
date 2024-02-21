@@ -56,7 +56,7 @@ export const VideoTimelineTicks = ({ timeToPx }: VideoTimelineTicksProps) => {
     return null;
   }
 
-  const numOfTicks = Math.ceil(videoDuration / step);
+  const numOfTicks = Math.round(videoDuration / step);
 
   return (
     <div className={ticksBoxStyles}>
