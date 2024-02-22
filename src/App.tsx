@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { VideoController } from "./lib/VideoController";
+import { useHotkeys } from "react-hotkeys-hook";
 import {
   Layout,
   PlayerCanvas,
@@ -29,6 +30,14 @@ function App() {
     };
     return { controller, reader };
   });
+
+  useHotkeys("right", () => controller.playForward(), []);
+  useHotkeys("left", () => controller.playBackward(), []);
+  useHotkeys(
+    "space",
+    () => (playing ? controller.pause() : controller.play()),
+    [playing],
+  );
 
   return (
     <Layout.Box>

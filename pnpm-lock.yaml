@@ -20,6 +20,7 @@ specifiers:
   prettier: ^3.0.3
   react: ^18.2.0
   react-dom: ^18.2.0
+  react-hotkeys-hook: ^4.5.0
   typescript: ^5.0.2
   vite: ^4.4.5
 
@@ -33,6 +34,7 @@ dependencies:
   mp4box: 0.5.2
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
+  react-hotkeys-hook: 4.5.0_biqbaboplfbrettd7655fr4n2y
 
 devDependencies:
   '@types/react': 18.2.24
@@ -2465,6 +2467,16 @@ packages:
       loose-envify: 1.4.0
       react: 18.2.0
       scheduler: 0.23.0
+    dev: false
+
+  /react-hotkeys-hook/4.5.0_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-Samb85GSgAWFQNvVt3PS90LPPGSf9mkH/r4au81ZP1yOIFayLC3QAvqTgGtJ8YEDMXtPmaVBs6NgipHO6h4Mug==}
+    peerDependencies:
+      react: '>=16.8.1'
+      react-dom: '>=16.8.1'
+    dependencies:
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
     dev: false
 
   /react-is/16.13.1:

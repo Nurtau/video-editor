@@ -83,6 +83,7 @@ export class VideoController {
   };
 
   play = () => {
+    console.log("play is pressed!");
     this.lastAdvanceTime = performance.now();
     this.advanceLoopId = requestAnimationFrame((now) =>
       this.advanceCurrentTime(now),
@@ -92,6 +93,7 @@ export class VideoController {
   };
 
   pause = () => {
+    console.log("pause is pressed!");
     if (this.advanceLoopId) {
       cancelAnimationFrame(this.advanceLoopId);
       this.advanceLoopId = null;
