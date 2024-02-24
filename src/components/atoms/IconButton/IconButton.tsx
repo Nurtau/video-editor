@@ -6,6 +6,7 @@ import {
   Add,
   Remove,
   Download,
+  ChangeCircle,
 } from "@mui/icons-material/";
 import { iconButtonStyles } from "./IconButton.css";
 
@@ -17,6 +18,7 @@ const ICONS = {
   plus: Add,
   minus: Remove,
   download: Download,
+  changeCircle: ChangeCircle,
 };
 
 interface IconButtonProps {

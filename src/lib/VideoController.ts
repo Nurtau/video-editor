@@ -7,6 +7,7 @@ import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { VideoHelpers } from "./VideoHelpers";
 import { videoPlayerBus } from "./VideoPlayerBus";
 import { VideoExporter } from "./VideoExporter";
+import { VideoFrameChanger } from "./VideoFrameChanger";
 
 const MAX_CAPACITY = 25;
 
@@ -39,6 +40,7 @@ export class VideoController {
   private lastRenderedVideoFrameTs: number | null = null;
 
   private exporter: VideoExporter;
+  private frameChanger: VideoFrameChanger;
 
   static buildDefaultState(): VideoControllerState {
     return {
@@ -53,7 +55,10 @@ export class VideoController {
       onDecode: this.onDecodedVideoFrame,
     });
     this.renderer = new VideoRenderer();
-    this.exporter = new VideoExporter();
+    this.frameChanger = new VideoFrameChanger();
+    this.exporter = new VideoExporter({
+      processFrame: this.frameChanger.processFrame,
+    });
   }
 
   setCanvasBox = (canvasBox: HTMLDivElement) => {
@@ -69,7 +74,7 @@ export class VideoController {
     const track = info.videoTracks[0];
     const trak = file.getTrackById(track.id);
     const codecConfig = VideoFrameDecoder.buildConfig(track, trak);
-    const videoTrackBuffer = new VideoTrackBuffer(track, samples, codecConfig);
+    const videoTrackBuffer = new VideoTrackBuffer(samples, codecConfig);
     this.videoTrackBuffers.push(videoTrackBuffer);
 
     this.onEmit({ videoTrackBuffers: this.videoTrackBuffers.slice() });
@@ -80,6 +85,11 @@ export class VideoController {
 
   exportVideo = async () => {
     this.exporter.exportVideo(this.videoTrackBuffers);
+  };
+
+  changeFrameFilters = () => {
+    this.frameChanger.changeFrameFilters();
+    this.seek(this.currentTime);
   };
 
   play = () => {
@@ -157,8 +167,8 @@ export class VideoController {
       const videoChunksDependencies = trackBuffer.getVideoChunksDependencies(
         this.currentTime,
       );
-      if (!videoChunksDependencies) return;
 
+      if (!videoChunksDependencies) return;
       this.decodeVideoChunks(videoChunksDependencies, codecConfig);
     }
 
@@ -172,7 +182,6 @@ export class VideoController {
       );
 
       if (!nextVideoChunks) return;
-
       this.decodeVideoChunks(nextVideoChunks, codecConfig);
     }
   }
@@ -204,7 +213,8 @@ export class VideoController {
       return;
     }
 
-    this.frameQueue.push(videoFrame);
+    const newFrame = this.frameChanger.processFrame(videoFrame);
+    this.frameQueue.push(newFrame);
 
     if (
       this.lastRenderedVideoFrameTs === null &&

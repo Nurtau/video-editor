@@ -24,8 +24,13 @@ export class VideoExporter {
   private nextKeyframeTs = 0;
   private mp4File: MP4File;
   private trackId: number | null = null;
+  private processFrame: (frame: VideoFrame) => VideoFrame;
 
-  constructor() {
+  constructor({
+    processFrame,
+  }: {
+    processFrame: VideoExporter["processFrame"];
+  }) {
     this.mp4File = createFile();
     this.decoder = new VideoDecoder({
       output: this.onDecode,
@@ -35,6 +40,7 @@ export class VideoExporter {
       output: this.onEncode,
       error: console.log,
     });
+    this.processFrame = processFrame;
   }
 
   exportVideo = async (buffers: VideoTrackBuffer[]) => {
@@ -75,13 +81,16 @@ export class VideoExporter {
   private onDecode = async (frame: VideoFrame) => {
     let keyFrame = false;
 
-    if (frame.timestamp >= this.nextKeyframeTs) {
+    const processedFrame = this.processFrame(frame);
+
+    if (processedFrame.timestamp >= this.nextKeyframeTs) {
       keyFrame = true;
-      this.nextKeyframeTs = frame.timestamp + KEYFRAME_INTERVAL_MICROSECONDS;
+      this.nextKeyframeTs =
+        processedFrame.timestamp + KEYFRAME_INTERVAL_MICROSECONDS;
     }
 
-    this.encoder.encode(frame, { keyFrame });
-    frame.close();
+    this.encoder.encode(processedFrame, { keyFrame });
+    processedFrame.close();
   };
 
   private onEncode = (

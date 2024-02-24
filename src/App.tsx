@@ -69,6 +69,7 @@ function App() {
             onClick={controller.exportVideo}
             disabled={!videoTrackBuffers.length}
           />
+          <IconButton name="changeCircle" onClick={controller.changeFrameFilters} />
         </div>
       </Layout.Controls>
       <Layout.Player>
