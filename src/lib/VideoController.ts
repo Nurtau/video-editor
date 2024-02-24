@@ -127,14 +127,24 @@ export class VideoController {
   private advanceCurrentTime(now: number) {
     this.currentTime = this.getCurrentVideoTime(now);
     this.lastAdvanceTime = now;
+    let reachedEnd = false;
+
+    if (this.currentTime >= this.videoTrackBuffers[0].getDuration()) {
+      reachedEnd = true;
+      this.currentTime = this.videoTrackBuffers[0].getDuration();
+    }
 
     videoPlayerBus.dispatch("currentTime", this.currentTime);
     this.decodeVideoFrames();
     this.renderVideoFrame();
 
-    this.advanceLoopId = requestAnimationFrame((now) =>
-      this.advanceCurrentTime(now),
-    );
+    if (reachedEnd) {
+      this.pause();
+    } else {
+      this.advanceLoopId = requestAnimationFrame((now) =>
+        this.advanceCurrentTime(now),
+      );
+    }
   }
 
   private decodeVideoFrames() {
