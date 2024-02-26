@@ -1,4 +1,4 @@
-import { type MP4Sample, type MP4VideoTrack } from "mp4box";
+import { type MP4Sample } from "mp4box";
 
 let incrementingId = 0;
 
