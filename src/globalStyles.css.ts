@@ -1,4 +1,5 @@
 import { globalStyle } from "@vanilla-extract/css";
+import { tokens } from "./ui-tokens";
 
 globalStyle("*", {
   margin: 0,
@@ -10,6 +11,7 @@ globalStyle("*", {
 globalStyle("html, body, #root", {
   width: "100%",
   height: "100%",
+  backgroundColor: tokens.colors["main-bg"],
 });
 
 globalStyle("::-webkit-scrollbar", {

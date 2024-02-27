@@ -1,17 +1,23 @@
 import { style } from "@vanilla-extract/css";
+import { tokens } from "~/ui-tokens";
 
 export const sliderBoxStyles = style({
-  height: "100%",
+  borderRadius: tokens.borderRadiuses["2.5"],
+  backgroundColor: tokens.colors["secondary-bg"],
+  border: `solid 2px ${tokens.colors["secondary-border"]}`,
   display: "flex",
   flexDirection: "column",
-  position: "relative",
-  width: "max-content",
-  cursor: "pointer",
+  height: "100%",
+  width: "100%",
 });
 
-export const tracksBoxStyles = style({
+export const headerBoxStyles = style({
+  height: "69px",
+});
+
+export const timelineBoxStyles = style({
   flex: 1,
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
+  borderTop: `solid 2px ${tokens.colors["secondary-border"]}`,
+  borderRadius: tokens.borderRadiuses["2.5"],
+  backgroundColor: tokens.colors["main-bg"],
 });

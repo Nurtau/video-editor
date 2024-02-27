@@ -1,48 +1,22 @@
-import {
-  PlayArrow,
-  Pause,
-  FastForward,
-  FastRewind,
-  Add,
-  Remove,
-  Download,
-  ChangeCircle,
-} from "@mui/icons-material/";
+import { Icon, type IconName } from "../Icon";
+
 import { iconButtonStyles } from "./IconButton.css";
 
-const ICONS = {
-  play: PlayArrow,
-  pause: Pause,
-  playForward: FastForward,
-  playBackward: FastRewind,
-  plus: Add,
-  minus: Remove,
-  download: Download,
-  changeCircle: ChangeCircle,
-};
-
 interface IconButtonProps {
-  name: keyof typeof ICONS;
+  name: IconName;
   onClick(): void;
   disabled?: boolean;
-  color?: string;
 }
 
-export const IconButton = ({
-  name,
-  onClick,
-  disabled,
-  color = "white",
-}: IconButtonProps) => {
-  const IconComponent = ICONS[name];
+export const IconButton = ({ name, onClick, disabled }: IconButtonProps) => {
   return (
     <button
+      type="button"
       className={iconButtonStyles}
-      style={{ color }}
       onClick={onClick}
       disabled={disabled}
     >
-      <IconComponent fontSize={"large"} />
+      <Icon name={name} />
     </button>
   );
 };

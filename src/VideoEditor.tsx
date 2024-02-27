@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import { VideoController } from "./lib/VideoController";
-import { Layout, PlayerCanvas } from "./components/atoms";
+import { Layout, PlayerCanvas, Sidebar } from "./components/atoms";
+import { PlayerSlider } from "./components/organisms";
 
 export const VideoEditor = () => {
   const [{ playing, videoTrackBuffers }, setControllerState] = useState(
     VideoController.buildDefaultState(),
   );
+
   const [{ controller, reader }] = useState(() => {
     const controller = new VideoController({
       onEmit: (nextValues) =>
@@ -33,13 +35,17 @@ export const VideoEditor = () => {
 
   return (
     <Layout.Box>
-      <Layout.Controls></Layout.Controls>
+      <Layout.Controls>
+        <Sidebar />
+      </Layout.Controls>
       <Layout.Player>
         <div style={{ flex: "1", width: "100%" }}>
           <PlayerCanvas ref={controller.setCanvasBox} />
         </div>
       </Layout.Player>
-      <Layout.Track></Layout.Track>
+      <Layout.Track>
+        <PlayerSlider />
+      </Layout.Track>
     </Layout.Box>
   );
 };

@@ -1,1 +1,2 @@
-export * from "./Test";
+export * from "./Camera";
+export * from "./Sliders";

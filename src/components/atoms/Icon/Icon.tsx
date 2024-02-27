@@ -1,6 +1,6 @@
 import * as Icons from "./react-icons";
 
-type IconName = keyof typeof Icons;
+export type IconName = keyof typeof Icons;
 
 // @NOW: add props color, size
 interface IconProps {
