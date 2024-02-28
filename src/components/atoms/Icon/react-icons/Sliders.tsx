@@ -10,7 +10,7 @@ export function Sliders(props: SVGProps<SVGSVGElement>) {
       {...props}
     >
       <path
-        stroke="#7B7C83"
+        stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.688}

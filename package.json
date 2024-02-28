@@ -11,12 +11,10 @@
     "generate-icons": "npx @svgr/cli --config-file ./src/components/atoms/Icon/config/svgr.config.cjs --out-dir ./src/components/atoms/Icon/react-icons ./src/components/atoms/Icon/svgs"
   },
   "dependencies": {
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.14.16",
-    "@mui/material": "^5.14.17",
-    "@mui/system": "^5.14.17",
     "@vanilla-extract/css": "^1.13.0",
+    "@vanilla-extract/dynamic": "^2.1.0",
+    "@vanilla-extract/recipes": "^0.5.1",
+    "clsx": "^2.1.0",
     "mp4box": "^0.5.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

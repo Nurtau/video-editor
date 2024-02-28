@@ -8,6 +8,10 @@ globalStyle("*", {
   fontFamily: "Helvetica",
 });
 
+globalStyle("html", {
+  fontSize: "62.5%",
+});
+
 globalStyle("html, body, #root", {
   width: "100%",
   height: "100%",

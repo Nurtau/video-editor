@@ -12,7 +12,7 @@ export const sliderBoxStyles = style({
 });
 
 export const headerBoxStyles = style({
-  height: "69px",
+  height: "60px",
 });
 
 export const timelineBoxStyles = style({

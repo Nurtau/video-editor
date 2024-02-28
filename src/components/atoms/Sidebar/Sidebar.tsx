@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { type IconName } from "../Icon";
 import { IconButton } from "../IconButton";
 
@@ -15,17 +15,30 @@ interface SidebarItem {
 }
 
 interface SidebarProps {
-  value: string;
   items: SidebarItem[];
 }
 
-export const Sidebar = ({ value, items }: SidebarProps) => {
+export const Sidebar = ({ items }: SidebarProps) => {
+  const [activeItem, setActiveItem] = useState(items[0]);
+
   return (
     <div className={sidebarBoxStyles}>
       <div className={iconListStyles}>
-        <IconButton name="Sliders" onClick={() => {}} />
+        {items.map((item) => (
+          <IconButton
+            key={item.value}
+            name={item.icon}
+            active={activeItem.value === item.value}
+            iconColor="pale-gray"
+            iconActiveColor="pale-blue"
+            bgHoverColor="white5"
+            iconSizing="lg"
+            p="4"
+            onClick={() => setActiveItem(item)}
+          />
+        ))}
       </div>
-      <div className={contextBoxStyles}></div>
+      <div className={contextBoxStyles}>{activeItem.content()}</div>
     </div>
   );
 };

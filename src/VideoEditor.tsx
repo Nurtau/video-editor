@@ -36,7 +36,30 @@ export const VideoEditor = () => {
   return (
     <Layout.Box>
       <Layout.Controls>
-        <Sidebar />
+        <Sidebar
+          items={[
+            {
+              icon: "Camera",
+              value: "videos",
+              content: () => <div>COOL</div>,
+            },
+            {
+              icon: "Sliders",
+              value: "video-settings",
+              content: () => <div>VIDEO-settings</div>,
+            },
+            {
+              icon: "PaintBrush",
+              value: "effects",
+              content: () => <div>VIDEO-effects</div>,
+            },
+            {
+              icon: "Merge",
+              value: "video-export",
+              content: () => <div>VIDEO-export</div>,
+            },
+          ]}
+        />
       </Layout.Controls>
       <Layout.Player>
         <div style={{ flex: "1", width: "100%" }}>

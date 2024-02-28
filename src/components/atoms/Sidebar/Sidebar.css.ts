@@ -21,6 +21,9 @@ export const iconListStyles = style([
   {
     width: "80px",
     padding: tokens.spacings["2"],
+    display: "flex",
+    flexDirection: "column",
+    gap: tokens.spacings["1"],
   },
 ]);
 

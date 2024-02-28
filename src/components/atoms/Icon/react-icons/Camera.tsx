@@ -10,14 +10,14 @@ export function Camera(props: SVGProps<SVGSVGElement>) {
       {...props}
     >
       <path
-        stroke="#7B7C83"
+        stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.688}
         d="M2.531 6.88h13.5c.895 0 1.754.38 2.387 1.054a3.72 3.72 0 0 1 .988 2.543v10.79a.93.93 0 0 1-.247.636.82.82 0 0 1-.596.263h-13.5a3.27 3.27 0 0 1-2.387-1.053 3.72 3.72 0 0 1-.989-2.543V7.78a.93.93 0 0 1 .248-.636.82.82 0 0 1 .596-.263"
       />
       <path
-        stroke="#7B7C83"
+        stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.688}
