@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 import { VideoFrameDecoder } from "~/lib/VideoFrameDecoder";
 import { type VideoBox } from "~/lib/VideoBoxDemuxer";
@@ -13,35 +13,47 @@ import {
 
 export type ExtendedVideoBox = {
   name: string;
+  frame?: VideoFrame;
 } & VideoBox;
 
 interface VideoBoxItemProps {
   box: ExtendedVideoBox;
   isChosen: boolean;
   onSelect(): void;
+  onFrame(videoFrame: VideoFrame): void;
 }
 
 export const VideoBoxItem = ({
   box,
   isChosen,
   onSelect,
+  onFrame,
 }: VideoBoxItemProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const drawFrame = (frame: VideoFrame) => {
+      const canvas = canvasRef.current!;
+
+      canvas.width = Math.floor(frame.displayWidth / 5);
+      canvas.height = Math.floor(frame.displayHeight / 5);
+
+      const ctx = canvas.getContext("2d")!;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+    };
+
+    if (box.frame) {
+      drawFrame(box.frame);
+      return;
+    }
+
     if (box.videoTrackBuffers.length === 0) return;
 
     const decoder = new VideoFrameDecoder({
       onDecode: (frame) => {
-        const canvas = canvasRef.current!;
-
-        canvas.width = frame.displayWidth;
-        canvas.height = frame.displayHeight;
-
-        const ctx = canvas.getContext("2d")!;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(frame, 0, 0);
-        frame.close();
+        drawFrame(frame);
+        onFrame(frame);
       },
     });
 

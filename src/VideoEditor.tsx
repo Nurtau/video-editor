@@ -1,16 +1,21 @@
 import { useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
+import { VideoTrackBuffer } from "./lib/VideoTrackBuffer";
 import { VideoController } from "./lib/VideoController";
 import { Layout, PlayerCanvas, Sidebar } from "./components/atoms";
 import { VideoUploadSection, PlayerSlider } from "./components/organisms";
 
 export const VideoEditor = () => {
-  const [{ playing, videoTrackBuffers }, setControllerState] = useState(
+  const [videoTrackBuffers, setVideoTrackBuffers] = useState<
+    VideoTrackBuffer[]
+  >([]);
+
+  const [{ playing }, setControllerState] = useState(
     VideoController.buildDefaultState(),
   );
 
-  const [{ controller, reader }] = useState(() => {
+  const [{ controller }] = useState(() => {
     const controller = new VideoController({
       onEmit: (nextValues) =>
         setControllerState((oldValues) => ({ ...oldValues, ...nextValues })),
