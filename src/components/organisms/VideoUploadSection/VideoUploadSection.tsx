@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { Button, FileUploadButton, useFileReader } from "~/components/atoms";
-import { VideoBoxDemuxer } from "~/lib/VideoBoxDemuxer";
+import { VideoBoxDemuxer, type VideoBox } from "~/lib/VideoBoxDemuxer";
 
 import { VideoBoxItem, type ExtendedVideoBox } from "./VideoBoxItem";
 import { useVideoBoxes } from "./VideoBoxesProvider";
@@ -13,7 +13,13 @@ import {
   titleStyles,
 } from "./VideoUploadSection.css";
 
-export const VideoUploadSection = () => {
+interface VideoUploadSectionProps {
+  onMoveToTimeline(videoBox: VideoBox): void;
+}
+
+export const VideoUploadSection = ({
+  onMoveToTimeline,
+}: VideoUploadSectionProps) => {
   const { videoBoxes, setVideoBoxes } = useVideoBoxes();
   const [selectedBox, setSelectedBox] = useState<ExtendedVideoBox | null>(null);
 
@@ -57,7 +63,11 @@ export const VideoUploadSection = () => {
         </FileUploadButton>
         <Button
           variant="secondary"
-          onClick={() => console.log(selectedBox)}
+          onClick={() => {
+            if (selectedBox) {
+              onMoveToTimeline(selectedBox);
+            }
+          }}
           disabled={selectedBox === null}
         >
           Move to timeline

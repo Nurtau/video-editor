@@ -1,7 +1,7 @@
 import { style } from "@vanilla-extract/css";
 import { tokens } from "~/ui-tokens";
 
-export const sliderBoxStyles = style({
+export const timelineBoxStyles = style({
   borderRadius: tokens.borderRadiuses["2.5"],
   backgroundColor: tokens.colors["secondary-bg"],
   border: `solid 2px ${tokens.colors["secondary-border"]}`,
@@ -9,15 +9,18 @@ export const sliderBoxStyles = style({
   flexDirection: "column",
   height: "100%",
   width: "100%",
+  maxWidth: "100%",
+  overflowX: "auto",
 });
 
 export const headerBoxStyles = style({
   height: "60px",
 });
 
-export const timelineBoxStyles = style({
+export const sliderBoxStyles = style({
   flex: 1,
   borderTop: `solid 2px ${tokens.colors["secondary-border"]}`,
-  borderRadius: tokens.borderRadiuses["2.5"],
   backgroundColor: tokens.colors["main-bg"],
+  minWidth: "100%",
+  width: "max-content",
 });

@@ -5,10 +5,10 @@ import { VideoTrackController } from "~/lib/VideoTrackController";
 
 import { trackBoxStyles, frameBoxStyles } from "./VideoTrackBox.css";
 
-const PREVIEW_WIDTH = 100;
+const PREVIEW_HEIGHT = 50;
 const PREVIEW_DIMENSIONS = {
-  WIDTH: PREVIEW_WIDTH,
-  HEIGHT: Math.floor((PREVIEW_WIDTH * 9) / 16), // preserve ratio 16:9
+  HEIGHT: PREVIEW_HEIGHT,
+  WIDTH: Math.floor((PREVIEW_HEIGHT * 16) / 9), // preserve ratio 16:9
 };
 
 const findPreviewFrames = (

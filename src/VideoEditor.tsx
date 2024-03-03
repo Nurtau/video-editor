@@ -4,7 +4,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { VideoTrackBuffer } from "./lib/VideoTrackBuffer";
 import { VideoController } from "./lib/VideoController";
 import { Layout, PlayerCanvas, Sidebar } from "./components/atoms";
-import { VideoUploadSection, PlayerSlider } from "./components/organisms";
+import { VideoUploadSection, PlayerTimeline } from "./components/organisms";
 
 export const VideoEditor = () => {
   const [videoTrackBuffers, setVideoTrackBuffers] = useState<
@@ -15,19 +15,11 @@ export const VideoEditor = () => {
     VideoController.buildDefaultState(),
   );
 
-  const [{ controller }] = useState(() => {
-    const controller = new VideoController({
+  const [controller] = useState(() => {
+    return new VideoController({
       onEmit: (nextValues) =>
         setControllerState((oldValues) => ({ ...oldValues, ...nextValues })),
     });
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (reader.result) {
-        (reader.result as any).fileStart = 0;
-        controller.setVideoArrayBuffer(reader.result);
-      }
-    };
-    return { controller, reader };
   });
 
   useHotkeys("right", () => controller.playForward(), []);
@@ -46,7 +38,16 @@ export const VideoEditor = () => {
             {
               icon: "Camera",
               value: "videos",
-              content: () => <VideoUploadSection />,
+              content: () => (
+                <VideoUploadSection
+                  onMoveToTimeline={(box) => {
+                    setVideoTrackBuffers((buffers) => [
+                      ...buffers,
+                      ...box.videoTrackBuffers,
+                    ]);
+                  }}
+                />
+              ),
             },
             {
               icon: "Sliders",
@@ -72,7 +73,7 @@ export const VideoEditor = () => {
         </div>
       </Layout.Player>
       <Layout.Track>
-        <PlayerSlider />
+        <PlayerTimeline videoTrackBuffers={videoTrackBuffers} />
       </Layout.Track>
     </Layout.Box>
   );
