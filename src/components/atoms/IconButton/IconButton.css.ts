@@ -14,7 +14,7 @@ export const iconButtonStyles = recipe({
     border: "none",
     borderRadius: tokens.borderRadiuses["2.5"],
     cursor: "pointer",
-    transition: "background-color 0.2s ease-in-out",
+    transition: "background-color 0.3s ease",
     ":hover": {
       backgroundColor: bgHoverColorVar,
     },

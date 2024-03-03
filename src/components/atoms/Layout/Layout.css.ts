@@ -19,6 +19,7 @@ export const playerStyles = style({
 
 export const controlsStyles = style({
   gridArea: "controls",
+  minHeight: 0,
 });
 
 export const trackStyles = style({

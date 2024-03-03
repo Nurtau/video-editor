@@ -31,5 +31,6 @@ export const contextBoxStyles = style([
   genericBoxStyles,
   {
     flex: 1,
+    overflow: "hidden",
   },
 ]);

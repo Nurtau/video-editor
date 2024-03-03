@@ -51,6 +51,10 @@ export class VideoFrameDecoder {
     this.decoder.decode(videoChunk);
   };
 
+  flush = () => {
+    this.decoder.flush();
+  };
+
   reset = () => {
     this.decoder.reset();
   };

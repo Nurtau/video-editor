@@ -1,18 +1,20 @@
 import { type ReactNode } from "react";
 
-import { fileUploadBoxStyles, fileInputStyles } from "./FileUploadButton.css";
+import { fileInputStyles } from "./FileUploadButton.css";
+import { buttonStyles, type ButtonStylesVariants } from "./Button.css";
 
-interface FileUploadButtonProps {
+type FileUploadButtonProps = {
   onUpload(file: File): void;
   children: ReactNode;
-}
+} & ButtonStylesVariants;
 
 export const FileUploadButton = ({
   onUpload,
   children,
+  variant = "primary",
 }: FileUploadButtonProps) => {
   return (
-    <label className={fileUploadBoxStyles}>
+    <label className={buttonStyles({ variant })}>
       <input
         className={fileInputStyles}
         type="file"

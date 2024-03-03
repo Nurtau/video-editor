@@ -1,11 +1,6 @@
 import { type MP4Sample } from "mp4box";
 
-let incrementingId = 0;
-
-const getId = () => {
-  incrementingId++;
-  return incrementingId;
-};
+import { generateId } from "./helpers";
 
 interface VideoChunksGroup {
   start: number;
@@ -22,7 +17,7 @@ export class VideoTrackBuffer {
     end: 0,
   };
 
-  public id = getId();
+  public id = generateId();
 
   constructor(samples: MP4Sample[], videoDecoderConfig: VideoDecoderConfig) {
     this.populateChunkGroups(samples);

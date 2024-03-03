@@ -14,6 +14,7 @@ const buildPromise = <T>() => {
   return { resolve: resolve as unknown as (val: T) => void, promise };
 };
 
+// @NOW: will be replaced by VideoBoxDemuxer
 export class VideoDemuxer {
   private mp4File: MP4File;
   private onReady = buildPromise<MP4Info>();

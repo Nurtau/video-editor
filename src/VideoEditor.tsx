@@ -3,7 +3,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 
 import { VideoController } from "./lib/VideoController";
 import { Layout, PlayerCanvas, Sidebar } from "./components/atoms";
-import { PlayerSlider } from "./components/organisms";
+import { VideoUploadSection, PlayerSlider } from "./components/organisms";
 
 export const VideoEditor = () => {
   const [{ playing, videoTrackBuffers }, setControllerState] = useState(
@@ -41,7 +41,7 @@ export const VideoEditor = () => {
             {
               icon: "Camera",
               value: "videos",
-              content: () => <div>COOL</div>,
+              content: () => <VideoUploadSection />,
             },
             {
               icon: "Sliders",

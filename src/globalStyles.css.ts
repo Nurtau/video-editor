@@ -5,7 +5,7 @@ globalStyle("*", {
   margin: 0,
   padding: 0,
   boxSizing: "border-box",
-  fontFamily: "Helvetica",
+    fontFamily: "Lato, sans-serif",
 });
 
 globalStyle("html", {
