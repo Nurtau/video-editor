@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import { VideoTrackBuffer } from "./lib/VideoTrackBuffer";
 import { VideoController } from "./lib/VideoController";
 import { Layout, PlayerCanvas, Sidebar } from "./components/atoms";
 import { VideoUploadSection, PlayerTimeline } from "./components/organisms";
+import { PlayerControls } from "./components/molecules";
 
 export const VideoEditor = () => {
   const [videoTrackBuffers, setVideoTrackBuffers] = useState<
@@ -21,6 +22,10 @@ export const VideoEditor = () => {
         setControllerState((oldValues) => ({ ...oldValues, ...nextValues })),
     });
   });
+
+  useEffect(() => {
+    controller.setVideoTrackBuffers(videoTrackBuffers);
+  }, [videoTrackBuffers]);
 
   useHotkeys("right", () => controller.playForward(), []);
   useHotkeys("left", () => controller.playBackward(), []);
@@ -68,9 +73,17 @@ export const VideoEditor = () => {
         />
       </Layout.Controls>
       <Layout.Player>
-        <div style={{ flex: "1", width: "100%" }}>
-          <PlayerCanvas ref={controller.setCanvasBox} />
-        </div>
+        <PlayerCanvas ref={controller.setCanvasBox}>
+          {videoTrackBuffers.length > 0 && (
+            <PlayerControls
+              playing={playing}
+              play={controller.play}
+              pause={controller.pause}
+              playBackward={controller.playBackward}
+              playForward={controller.playForward}
+            />
+          )}
+        </PlayerCanvas>
       </Layout.Player>
       <Layout.Track>
         <PlayerTimeline videoTrackBuffers={videoTrackBuffers} />

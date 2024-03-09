@@ -3,6 +3,7 @@ import { recipe } from "@vanilla-extract/recipes";
 import { tokens } from "~/ui-tokens";
 
 export const iconColorVar = createVar();
+export const iconHoverColorVar = createVar();
 export const iconActiveColorVar = createVar();
 export const bgColorVar = createVar();
 export const bgHoverColorVar = createVar();
@@ -14,8 +15,10 @@ export const iconButtonStyles = recipe({
     border: "none",
     borderRadius: tokens.borderRadiuses["2.5"],
     cursor: "pointer",
-    transition: "background-color 0.3s ease",
+    lineHeight: 0,
+    transition: "all 0.3s ease",
     ":hover": {
+      color: iconHoverColorVar,
       backgroundColor: bgHoverColorVar,
     },
     ":disabled": {

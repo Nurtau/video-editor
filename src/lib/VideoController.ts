@@ -1,6 +1,3 @@
-import { type MP4ArrayBuffer } from "mp4box";
-
-import { VideoDemuxer } from "./VideoDemuxer";
 import { VideoFrameDecoder } from "./VideoFrameDecoder";
 import { VideoRenderer } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
@@ -13,7 +10,6 @@ const MAX_CAPACITY = 25;
 
 interface VideoControllerState {
   playing: boolean;
-  videoTrackBuffers: VideoTrackBuffer[];
 }
 
 interface VideoControllerProps {
@@ -39,13 +35,17 @@ export class VideoController {
   private furthestDecodingVideoChunk: EncodedVideoChunk | null = null;
   private lastRenderedVideoFrameTs: number | null = null;
 
+  private activeVideoTrack: {
+    prefixTs: number;
+    buffer: VideoTrackBuffer;
+  } | null = null;
+
   private exporter: VideoExporter;
   private frameChanger: VideoFrameChanger;
 
   static buildDefaultState(): VideoControllerState {
     return {
       playing: false,
-      videoTrackBuffers: [],
     };
   }
 
@@ -61,26 +61,22 @@ export class VideoController {
     });
   }
 
-  setCanvasBox = (canvasBox: HTMLDivElement) => {
-    this.renderer.setCanvasBox(canvasBox);
+  setVideoTrackBuffers = (videoTrackBuffers: VideoTrackBuffer[]) => {
+    this.videoTrackBuffers = videoTrackBuffers;
+
+    if (this.videoTrackBuffers.length > 0) {
+      this.seek(this.currentTime);
+    }
+
+    const totalDuration = this.videoTrackBuffers.reduce(
+      (cur, trackBuffer) => cur + trackBuffer.getDuration(),
+      0,
+    );
+    videoPlayerBus.dispatch("totalDuration", totalDuration);
   };
 
-  setVideoArrayBuffer = async (arrayBuffer: ArrayBuffer | string) => {
-    const demuxer = new VideoDemuxer(arrayBuffer as MP4ArrayBuffer);
-    const info = await demuxer.getInfo();
-    const samples = await demuxer.getSamples();
-    const file = demuxer.getFile();
-
-    const track = info.videoTracks[0];
-    const trak = file.getTrackById(track.id);
-    const codecConfig = VideoFrameDecoder.buildConfig(track, trak);
-    const videoTrackBuffer = new VideoTrackBuffer(samples, codecConfig);
-    this.videoTrackBuffers.push(videoTrackBuffer);
-
-    this.onEmit({ videoTrackBuffers: this.videoTrackBuffers.slice() });
-    videoPlayerBus.dispatch("totalDuration", videoTrackBuffer.getDuration());
-
-    this.seek(0);
+  setCanvasBox = (canvasBox: HTMLDivElement) => {
+    this.renderer.setCanvasBox(canvasBox);
   };
 
   exportVideo = async () => {
@@ -139,7 +135,8 @@ export class VideoController {
     this.lastAdvanceTime = now;
     let reachedEnd = false;
 
-    if (this.currentTime >= this.videoTrackBuffers[0].getDuration()) {
+    // @NOW: fix condition
+    if (false && this.currentTime >= this.videoTrackBuffers[0].getDuration()) {
       reachedEnd = true;
       this.currentTime = this.videoTrackBuffers[0].getDuration();
     }
@@ -158,18 +155,29 @@ export class VideoController {
   }
 
   private decodeVideoFrames() {
-    // @TODO: handle multiple track buffer on multiple videos
-    const trackBuffer = this.videoTrackBuffers[0];
+    if (!this.activeVideoTrack) {
+      const activeVideoTrack = this.getActiveVideoTrack();
+
+      if (!activeVideoTrack) return;
+      this.activeVideoTrack = activeVideoTrack;
+    }
+
+    const trackBuffer = this.activeVideoTrack.buffer;
+    const prefixTimestamp = this.activeVideoTrack.prefixTs;
     const codecConfig = trackBuffer.getCodecConfig();
 
     if (this.furthestDecodingVideoChunk === null) {
-      // it means that we need to decode dependencies first
-      const videoChunksDependencies = trackBuffer.getVideoChunksDependencies(
-        this.currentTime,
-      );
+      // it can be negative when we are decoding frames of next track
+      const dependenciesAtTs = Math.max(this.currentTime - prefixTimestamp, 0);
+      const videoChunksDependencies =
+        trackBuffer.getVideoChunksDependencies(dependenciesAtTs);
 
       if (!videoChunksDependencies) return;
-      this.decodeVideoChunks(videoChunksDependencies, codecConfig);
+      this.decodeVideoChunks(
+        videoChunksDependencies,
+        codecConfig,
+        prefixTimestamp,
+      );
     }
 
     const availableSpace =
@@ -181,18 +189,33 @@ export class VideoController {
         availableSpace,
       );
 
-      if (!nextVideoChunks) return;
-      this.decodeVideoChunks(nextVideoChunks, codecConfig);
+      if (!nextVideoChunks || nextVideoChunks.length === 0) {
+        const nextTrackBuffer = this.getNextActiveVideoTrack(trackBuffer);
+
+        if (nextTrackBuffer) {
+          this.activeVideoTrack = nextTrackBuffer;
+          this.furthestDecodingVideoChunk = null;
+        }
+
+        return;
+      }
+
+      this.decodeVideoChunks(nextVideoChunks, codecConfig, prefixTimestamp);
     }
   }
 
   private decodeVideoChunks(
     videoChunks: EncodedVideoChunk[],
     codecConfig: VideoDecoderConfig,
+    prefixTimestamp: number,
   ) {
     videoChunks.forEach((chunk) => {
-      this.frameDecoder.decode(chunk, codecConfig);
-      this.decodingChunks.push(chunk);
+      const newChunk = VideoHelpers.recreateVideoChunk(chunk, {
+        timestamp: chunk.timestamp + prefixTimestamp * 1e6,
+      });
+
+      this.frameDecoder.decode(newChunk, codecConfig);
+      this.decodingChunks.push(newChunk);
     });
     this.furthestDecodingVideoChunk = videoChunks[videoChunks.length - 1];
   }
@@ -225,6 +248,44 @@ export class VideoController {
       );
     }
   };
+
+  private getActiveVideoTrack() {
+    let trackBuffer: VideoTrackBuffer | null = null;
+    let prefixTimestamp = 0;
+
+    for (let i = 0; i < this.videoTrackBuffers.length; i++) {
+      if (
+        prefixTimestamp <= this.currentTime &&
+        this.currentTime <
+          this.videoTrackBuffers[i].getDuration() + prefixTimestamp
+      ) {
+        trackBuffer = this.videoTrackBuffers[i];
+        break;
+      }
+      prefixTimestamp += this.videoTrackBuffers[i].getDuration();
+    }
+
+    if (!trackBuffer) return null;
+    return { prefixTs: prefixTimestamp, buffer: trackBuffer };
+  }
+
+  private getNextActiveVideoTrack(trackBuffer: VideoTrackBuffer) {
+    // @NOW: there is a problem with duplicated trackBuffers:
+    // what about recreating trackbuffer with different id on move to timeline?
+    const trackBufferIndex = this.videoTrackBuffers.findIndex(
+      (track) => track.id === trackBuffer.id,
+    );
+
+    const nextTrackIndex = trackBufferIndex + 1;
+    if (nextTrackIndex >= this.videoTrackBuffers.length) return null;
+
+    const nextTrackBuffer = this.videoTrackBuffers[nextTrackIndex];
+    const prefixTs = this.videoTrackBuffers
+      .slice(0, nextTrackIndex)
+      .reduce((acc, track) => acc + track.getDuration(), 0);
+
+    return { prefixTs, buffer: nextTrackBuffer };
+  }
 
   private renderVideoFrame() {
     this.resetScheduleRenderId();
@@ -269,6 +330,7 @@ export class VideoController {
     this.frameQueue.forEach((frame) => frame.close());
     this.frameQueue = [];
     this.decodingChunks = [];
+    this.activeVideoTrack = null;
   }
 
   private resetScheduleRenderId() {

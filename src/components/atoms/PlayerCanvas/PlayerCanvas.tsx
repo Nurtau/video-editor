@@ -1,16 +1,23 @@
-import { forwardRef } from "react";
+import { forwardRef, type ReactNode } from "react";
 
 import {
   playerCanvasOuterBoxStyles,
   playerCanvasBoxStyles,
 } from "./PlayerCanvas.css";
 
-export const PlayerCanvas = forwardRef<HTMLDivElement, {}>((_, ref) => {
-  return (
-    <div ref={ref} className={playerCanvasOuterBoxStyles}>
-      <div className={playerCanvasBoxStyles}>
-        <canvas />
+interface PlayerCanvasProps {
+  children: ReactNode;
+}
+
+export const PlayerCanvas = forwardRef<HTMLDivElement, PlayerCanvasProps>(
+  ({ children }, ref) => {
+    return (
+      <div ref={ref} className={playerCanvasOuterBoxStyles}>
+        <div className={playerCanvasBoxStyles}>
+          <canvas />
+          {children}
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);

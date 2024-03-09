@@ -6,6 +6,7 @@ import { Icon, type IconName, type IconSizing } from "../Icon";
 import {
   iconButtonStyles,
   iconColorVar,
+  iconHoverColorVar,
   iconActiveColorVar,
   bgColorVar,
   bgHoverColorVar,
@@ -15,6 +16,7 @@ interface IconButtonProps {
   name: IconName;
   iconSizing: IconSizing;
   iconColor?: ColorName;
+  iconHoverColor?: ColorName;
   iconActiveColor?: ColorName;
   bgColor?: ColorName;
   bgHoverColor?: ColorName;
@@ -28,6 +30,7 @@ export const IconButton = ({
   name,
   iconSizing,
   iconColor = "white100",
+  iconHoverColor = iconColor,
   iconActiveColor = iconColor,
   bgColor = "transparent",
   bgHoverColor = bgColor,
@@ -44,6 +47,7 @@ export const IconButton = ({
         padding: p ? tokens.spacings[p] : undefined,
         ...assignInlineVars({
           [iconColorVar]: tokens.colors[iconColor],
+          [iconHoverColorVar]: tokens.colors[iconHoverColor],
           [iconActiveColorVar]: tokens.colors[iconActiveColor],
           [bgColorVar]: tokens.colors[bgColor],
           [bgHoverColorVar]: tokens.colors[bgHoverColor],

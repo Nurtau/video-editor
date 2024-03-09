@@ -5,6 +5,7 @@ export const borderRadiuses = {
   "1.5": "6px",
   "2": "8px",
   "2.5": "10px",
+  "3": "12px",
 };
 
 export type BorderRadius = keyof typeof borderRadiuses;
