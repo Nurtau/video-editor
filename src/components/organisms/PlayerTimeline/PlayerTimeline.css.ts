@@ -15,6 +15,7 @@ export const timelineBoxStyles = style({
 
 export const headerBoxStyles = style({
   height: "60px",
+  position: "relative",
 });
 
 export const sliderBoxStyles = style({

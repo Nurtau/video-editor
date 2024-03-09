@@ -5,7 +5,7 @@ globalStyle("*", {
   margin: 0,
   padding: 0,
   boxSizing: "border-box",
-    fontFamily: "Lato, sans-serif",
+  fontFamily: "Lato, sans-serif",
 });
 
 globalStyle("html", {
@@ -25,6 +25,7 @@ globalStyle("::-webkit-scrollbar", {
 
 globalStyle("::-webkit-scrollbar-thumb", {
   background: "rgba(90, 90, 90)",
+  cursor: "grab",
 });
 
 globalStyle("::-webkit-scrollbar-track", {

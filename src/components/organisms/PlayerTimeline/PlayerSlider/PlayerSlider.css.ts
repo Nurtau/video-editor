@@ -1,12 +1,14 @@
 import { style } from "@vanilla-extract/css";
 import { tokens } from "~/ui-tokens";
 
+import { TIMELINE_PADDING_INLINE } from "~/constants";
+
 export const trackBoxStyles = style({
   height: "60px",
   display: "flex",
   position: "relative",
   alignItems: "center",
-  paddingInline: "32px",
+  paddingInline: TIMELINE_PADDING_INLINE,
   ":before": {
     content: "",
     position: "absolute",

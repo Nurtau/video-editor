@@ -26,7 +26,7 @@ export const PlayerControls = ({
     <div className={playerControlsStyles}>
       <div className={firstControlsStyles}>
         <IconButton
-          name={playing ? "Plus" : "Play"}
+          name={playing ? "Pause" : "Play"}
           iconSizing="xs"
           iconColor="white100"
           iconHoverColor="white50"

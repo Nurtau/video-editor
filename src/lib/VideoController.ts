@@ -28,6 +28,7 @@ export class VideoController {
   private playing = false;
   private currentTime = 0;
   private lastAdvanceTime = 0;
+  private totalDuration = 0;
 
   private advanceLoopId: number | null = null;
   private scheduleRenderId: number | null = null;
@@ -72,6 +73,7 @@ export class VideoController {
       (cur, trackBuffer) => cur + trackBuffer.getDuration(),
       0,
     );
+    this.totalDuration = totalDuration;
     videoPlayerBus.dispatch("totalDuration", totalDuration);
   };
 
@@ -123,7 +125,7 @@ export class VideoController {
   };
 
   playForward = () => {
-    this.seek(this.currentTime + 5);
+    this.seek(Math.min(this.totalDuration, this.currentTime + 5));
   };
 
   playBackward = () => {
@@ -135,10 +137,9 @@ export class VideoController {
     this.lastAdvanceTime = now;
     let reachedEnd = false;
 
-    // @NOW: fix condition
-    if (false && this.currentTime >= this.videoTrackBuffers[0].getDuration()) {
+    if (this.currentTime >= this.totalDuration) {
       reachedEnd = true;
-      this.currentTime = this.videoTrackBuffers[0].getDuration();
+      this.currentTime = this.totalDuration;
     }
 
     videoPlayerBus.dispatch("currentTime", this.currentTime);

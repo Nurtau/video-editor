@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
+import { TimelineTicks } from "~/components/molecules";
 
 import { PlayerSlider } from "./PlayerSlider";
 import {
@@ -26,7 +27,9 @@ export const PlayerTimeline = ({ videoTrackBuffers }: PlayerSliderProps) => {
 
   return (
     <div className={timelineBoxStyles}>
-      <div className={headerBoxStyles}></div>
+      <div className={headerBoxStyles}>
+        <TimelineTicks timeToPx={timeToPx} />
+      </div>
       <div className={sliderBoxStyles}>
         <PlayerSlider
           videoTrackBuffers={videoTrackBuffers}
