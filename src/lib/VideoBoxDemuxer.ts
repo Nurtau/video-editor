@@ -44,7 +44,10 @@ const processBuffer = async (buffer: ArrayBuffer): Promise<VideoBox> => {
     const samples = await extractSamples(mp4File, track.id);
     const trak = mp4File.getTrackById(track.id);
     const codecConfig = VideoFrameDecoder.buildConfig(track, trak);
-    const trackBuffer = new VideoTrackBuffer(samples, codecConfig);
+    const trackBuffer = new VideoTrackBuffer({
+      samples,
+      videoDecoderConfig: codecConfig,
+    });
     videoTrackBuffers.push(trackBuffer);
   }
 

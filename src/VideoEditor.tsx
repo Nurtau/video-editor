@@ -46,10 +46,12 @@ export const VideoEditor = () => {
               content: () => (
                 <VideoUploadSection
                   onMoveToTimeline={(box) => {
-                    setVideoTrackBuffers((buffers) => [
-                      ...buffers,
-                      ...box.videoTrackBuffers,
-                    ]);
+                    setVideoTrackBuffers((buffers) => {
+                      const newBuffers = box.videoTrackBuffers.map((buffer) =>
+                        buffer.copy(),
+                      );
+                      return [...buffers, ...newBuffers];
+                    });
                   }}
                 />
               ),

@@ -271,8 +271,6 @@ export class VideoController {
   }
 
   private getNextActiveVideoTrack(trackBuffer: VideoTrackBuffer) {
-    // @NOW: there is a problem with duplicated trackBuffers:
-    // what about recreating trackbuffer with different id on move to timeline?
     const trackBufferIndex = this.videoTrackBuffers.findIndex(
       (track) => track.id === trackBuffer.id,
     );

@@ -8,6 +8,11 @@ interface VideoChunksGroup {
   videoChunks: EncodedVideoChunk[];
 }
 
+interface NewDataProps {
+  samples: MP4Sample[];
+  videoDecoderConfig: VideoDecoderConfig;
+}
+
 export class VideoTrackBuffer {
   private videoChunksGroups: VideoChunksGroup[] = [];
   private codecConfig: VideoDecoderConfig;
@@ -19,17 +24,29 @@ export class VideoTrackBuffer {
 
   public id = generateId();
 
-  constructor(samples: MP4Sample[], videoDecoderConfig: VideoDecoderConfig) {
-    this.populateChunkGroups(samples);
-    this.codecConfig = videoDecoderConfig;
+  constructor(props: NewDataProps | VideoTrackBuffer) {
+    if (props instanceof VideoTrackBuffer) {
+      this.videoChunksGroups = props.getVideoChunksGroups();
+      this.codecConfig = props.getCodecConfig();
+      this.range = props.getRange();
+    } else {
+      const { samples, videoDecoderConfig } = props;
 
-    if (this.videoChunksGroups.length > 0) {
-      const duration =
-        this.videoChunksGroups[this.videoChunksGroups.length - 1].end /
-        1_000_000;
-      this.range.maxEnd = duration;
-      this.range.end = duration;
+      this.populateChunkGroups(samples);
+      this.codecConfig = videoDecoderConfig;
+
+      if (this.videoChunksGroups.length > 0) {
+        const duration =
+          this.videoChunksGroups[this.videoChunksGroups.length - 1].end /
+          1_000_000;
+        this.range.maxEnd = duration;
+        this.range.end = duration;
+      }
     }
+  }
+
+  copy(): VideoTrackBuffer {
+    return new VideoTrackBuffer(this);
   }
 
   getVideoChunksDependencies = (time: number) => {
@@ -83,6 +100,10 @@ export class VideoTrackBuffer {
 
   getDuration = () => {
     return this.range.end - this.range.start;
+  };
+
+  getRange = () => {
+    return this.range;
   };
 
   private populateChunkGroups(samples: MP4Sample[]) {
