@@ -88,10 +88,10 @@ const setRectangle = (
   width: number,
   height: number,
 ) => {
-  var x1 = x;
-  var x2 = x + width;
-  var y1 = y;
-  var y2 = y + height;
+  const x1 = x;
+  const x2 = x + width;
+  const y1 = y;
+  const y2 = y + height;
   gl.bufferData(
     gl.ARRAY_BUFFER,
     new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]),
@@ -200,7 +200,7 @@ export class VideoFrameChanger {
     this.changeFrameFilters();
   }
 
-  // @TODO: rework changing filters 
+  // @TODO: rework changing filters
   changeFrameFilters = () => {
     this.threshold = this.threshold ? false : 0.5;
 
@@ -242,7 +242,7 @@ export class VideoFrameChanger {
 
     const primitiveType = this.gl.TRIANGLES;
     const offset = 0;
-    let count = 6;
+    const count = 6;
     this.gl.drawArrays(primitiveType, offset, count);
 
     this.gl.flush();

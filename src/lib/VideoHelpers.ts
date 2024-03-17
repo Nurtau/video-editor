@@ -24,7 +24,30 @@ const formatTime = (
   return `${formattedMinutes}:${formattedSeconds}`;
 };
 
+const recreateVideoChunk = (
+  chunk: EncodedVideoChunk,
+  { timestamp }: { timestamp: number },
+) => {
+  const buffer = new Uint8Array(chunk.byteLength);
+  chunk.copyTo(buffer);
+
+  return new EncodedVideoChunk({
+    type: chunk.type,
+    duration: chunk.duration ?? undefined,
+    timestamp,
+    data: buffer,
+  });
+};
+
+const clampTime = (time: number, maxTime: number) => {
+  if (time < 0) return 0;
+  if (time > maxTime) return maxTime;
+  return time;
+}
+
 export const VideoHelpers = {
   isChunkInTime,
   formatTime,
+  recreateVideoChunk,
+  clampTime,
 };

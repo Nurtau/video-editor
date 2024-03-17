@@ -1,17 +1,39 @@
-import { style } from "@vanilla-extract/css";
+import { createVar } from "@vanilla-extract/css";
+import { recipe } from "@vanilla-extract/recipes";
+import { tokens } from "~/ui-tokens";
 
-export const iconButtonStyles = style({
-  backgroundColor: "transparent",
-  border: "none",
-  cursor: "pointer",
-  padding: "5px",
-  ":disabled": {
-    opacity: 0.5,
-    cursor: "not-allowed",
+export const iconColorVar = createVar();
+export const iconHoverColorVar = createVar();
+export const iconActiveColorVar = createVar();
+export const bgColorVar = createVar();
+export const bgHoverColorVar = createVar();
+
+export const iconButtonStyles = recipe({
+  base: {
+    backgroundColor: bgColorVar,
+    color: iconColorVar,
+    border: "none",
+    borderRadius: tokens.borderRadiuses["2.5"],
+    cursor: "pointer",
+    lineHeight: 0,
+    transition: "all 0.3s ease",
+    ":hover": {
+      color: iconHoverColorVar,
+      backgroundColor: bgHoverColorVar,
+    },
+    ":disabled": {
+      cursor: "not-allowed",
+    },
   },
-  selectors: {
-    "&:hover:not([disabled])": {
-      color: "#ccc",
+  variants: {
+    active: {
+      true: {
+        color: iconActiveColorVar,
+        borderInline: "1px solid currentcolor",
+      },
+      false: {
+        borderInline: "1px solid transparent",
+      },
     },
   },
 });

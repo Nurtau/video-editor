@@ -1,15 +1,21 @@
 import { globalStyle } from "@vanilla-extract/css";
+import { tokens } from "./ui-tokens";
 
 globalStyle("*", {
   margin: 0,
   padding: 0,
   boxSizing: "border-box",
-  fontFamily: "Helvetica",
+  fontFamily: "Lato, sans-serif",
+});
+
+globalStyle("html", {
+  fontSize: "62.5%",
 });
 
 globalStyle("html, body, #root", {
   width: "100%",
   height: "100%",
+  backgroundColor: tokens.colors["main-bg"],
 });
 
 globalStyle("::-webkit-scrollbar", {
@@ -19,6 +25,7 @@ globalStyle("::-webkit-scrollbar", {
 
 globalStyle("::-webkit-scrollbar-thumb", {
   background: "rgba(90, 90, 90)",
+  cursor: "grab",
 });
 
 globalStyle("::-webkit-scrollbar-track", {

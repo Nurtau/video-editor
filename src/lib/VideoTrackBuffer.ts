@@ -1,16 +1,16 @@
-import { type MP4Sample, type MP4VideoTrack } from "mp4box";
+import { type MP4Sample } from "mp4box";
 
-let incrementingId = 0;
-
-const getId = () => {
-  incrementingId++;
-  return incrementingId;
-};
+import { generateId } from "./helpers";
 
 interface VideoChunksGroup {
   start: number;
   end: number;
   videoChunks: EncodedVideoChunk[];
+}
+
+interface NewDataProps {
+  samples: MP4Sample[];
+  videoDecoderConfig: VideoDecoderConfig;
 }
 
 export class VideoTrackBuffer {
@@ -22,19 +22,31 @@ export class VideoTrackBuffer {
     end: 0,
   };
 
-  public id = getId();
+  public id = generateId();
 
-  constructor(samples: MP4Sample[], videoDecoderConfig: VideoDecoderConfig) {
-    this.populateChunkGroups(samples);
-    this.codecConfig = videoDecoderConfig;
+  constructor(props: NewDataProps | VideoTrackBuffer) {
+    if (props instanceof VideoTrackBuffer) {
+      this.videoChunksGroups = props.getVideoChunksGroups();
+      this.codecConfig = props.getCodecConfig();
+      this.range = props.getRange();
+    } else {
+      const { samples, videoDecoderConfig } = props;
 
-    if (this.videoChunksGroups.length > 0) {
-      const duration =
-        this.videoChunksGroups[this.videoChunksGroups.length - 1].end /
-        1_000_000;
-      this.range.maxEnd = duration;
-      this.range.end = duration;
+      this.populateChunkGroups(samples);
+      this.codecConfig = videoDecoderConfig;
+
+      if (this.videoChunksGroups.length > 0) {
+        const duration =
+          this.videoChunksGroups[this.videoChunksGroups.length - 1].end /
+          1_000_000;
+        this.range.maxEnd = duration;
+        this.range.end = duration;
+      }
     }
+  }
+
+  copy(): VideoTrackBuffer {
+    return new VideoTrackBuffer(this);
   }
 
   getVideoChunksDependencies = (time: number) => {
@@ -90,6 +102,10 @@ export class VideoTrackBuffer {
     return this.range.end - this.range.start;
   };
 
+  getRange = () => {
+    return this.range;
+  };
+
   private populateChunkGroups(samples: MP4Sample[]) {
     let currentFramesGroup: VideoChunksGroup | null = null;
 
@@ -98,7 +114,7 @@ export class VideoTrackBuffer {
 
     for (const sample of samples) {
       let timestamp = (sample.cts * 1_000_000) / sample.timescale;
-      let duration = (sample.duration * 1_000_000) / sample.timescale;
+      const duration = (sample.duration * 1_000_000) / sample.timescale;
 
       // @TODO: first frame does not start at 0: this is quick workaround
       // learn more about it and find if there is a better solution

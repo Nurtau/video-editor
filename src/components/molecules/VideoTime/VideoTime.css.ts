@@ -1,19 +1,21 @@
 import { style } from "@vanilla-extract/css";
+import { tokens } from "~/ui-tokens";
 
 export const videoTimeBoxStyles = style({
   display: "flex",
-  gap: "10px",
+  gap: tokens.spacings["1"],
   justifyContent: "center",
   alignItems: "center",
+  fontSize: 14,
   color: "white",
 });
 
 export const currentTimeStyles = style({
-  color: "hsl(0, 0%, 70%)",
+  color: tokens.colors["white100"],
 });
 
 export const totalDurationStyles = style({
-  color: "hsl(0, 0%, 50%)",
+  color: tokens.colors["white50"],
 });
 
 export const slashStyles = style([totalDurationStyles]);
