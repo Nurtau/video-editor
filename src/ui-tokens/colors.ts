@@ -7,6 +7,7 @@ export const colors = {
   "pale-gray": "rgba(123, 124, 131, 1)", //7B7C83
   "bright-blue": "rgba(109, 141, 255, 1)", //6D8DFF
   white100: "rgba(255, 255, 255, 1)",
+  white80: "rgba(255, 255, 255, 0.8)",
   white50: "rgba(255, 255, 255, 0.5)",
   white25: "rgba(255, 255, 255, 0.25)",
   white15: "rgba(255, 255, 255, 0.15)",

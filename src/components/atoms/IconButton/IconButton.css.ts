@@ -22,7 +22,7 @@ export const iconButtonStyles = recipe({
       backgroundColor: bgHoverColorVar,
     },
     ":disabled": {
-      cursor: "disabled",
+      cursor: "not-allowed",
     },
   },
   variants: {

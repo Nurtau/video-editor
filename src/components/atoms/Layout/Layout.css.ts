@@ -15,6 +15,7 @@ export const boxStyles = style({
 
 export const playerStyles = style({
   gridArea: "player",
+  minWidth: 0,
 });
 
 export const controlsStyles = style({
@@ -24,4 +25,5 @@ export const controlsStyles = style({
 
 export const trackStyles = style({
   gridArea: "track",
+  position: "relative",
 });

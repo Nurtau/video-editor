@@ -1,5 +1,13 @@
-import { useMemo, useEffect, useState, Fragment } from "react";
+import {
+  useRef,
+  useMemo,
+  useLayoutEffect,
+  useEffect,
+  useState,
+  Fragment,
+} from "react";
 
+import { TIMELINE_PADDING_INLINE } from "~/constants";
 import { videoPlayerBus } from "~/lib/VideoPlayerBus";
 import { VideoHelpers } from "~/lib/VideoHelpers";
 import {
@@ -47,24 +55,42 @@ interface TimelineTicksProps {
 }
 
 export const TimelineTicks = ({ timeToPx }: TimelineTicksProps) => {
-  // @NOW: what about filling whole timeline with ticks without requesting a video or during short video
-  const [videoDuration, setDuration] = useState<number | null>(null);
+  const ticksBoxRef = useRef<HTMLDivElement | null>(null);
+
+  const [minDuration, setMinDuration] = useState(0);
+  const [videoDuration, setDuration] = useState<number>(0);
   const step = useMemo(() => findAppropriateStep(timeToPx), [timeToPx]);
+
+  useLayoutEffect(() => {
+    const boxNode = ticksBoxRef.current;
+    if (!boxNode) return;
+
+    const updateMinDuration = () => {
+      const width =
+        boxNode.offsetWidth - TIMELINE_PADDING_INLINE - LABEL_WIDTH / 2;
+      setMinDuration(width / timeToPx);
+    };
+
+    updateMinDuration();
+    window.addEventListener("resize", updateMinDuration);
+
+    return () => {
+      window.removeEventListener("resize", updateMinDuration);
+    };
+  }, [timeToPx]);
 
   useEffect(() => {
     return videoPlayerBus.subscribe("totalDuration", setDuration);
   }, []);
 
-  if (!videoDuration) {
-    return null;
-  }
+  const clampedVideoDuration = Math.max(minDuration, videoDuration);
 
-  const numOfTicks = Math.round(videoDuration / step);
+  const numOfTicks = Math.round(clampedVideoDuration / step);
   const circlesBoxWidth = step * timeToPx - LABEL_WIDTH;
   const dots = Math.floor(circlesBoxWidth / CIRCLE_OPTIMISTIC_GAP);
 
   return (
-    <div className={ticksBoxStyles}>
+    <div ref={ticksBoxRef} className={ticksBoxStyles}>
       {range(numOfTicks).map((index) => {
         const time = index * step;
 
