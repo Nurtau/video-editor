@@ -20,11 +20,13 @@ export const headerBoxStyles = style({
 });
 
 export const sliderBoxStyles = style({
+  position: "relative",
   flex: 1,
   borderTop: `solid 2px ${tokens.colors["secondary-border"]}`,
   backgroundColor: tokens.colors["main-bg"],
   minWidth: "100%",
   width: "max-content",
+  cursor: "pointer",
 });
 
 export const zoomingControlsBoxStyles = style({

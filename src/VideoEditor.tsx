@@ -86,7 +86,10 @@ export const VideoEditor = () => {
         </PlayerCanvas>
       </Layout.Player>
       <Layout.Track>
-        <PlayerTimeline videoTrackBuffers={videoTrackBuffers} />
+        <PlayerTimeline
+          videoTrackBuffers={videoTrackBuffers}
+          seek={controller.seek}
+        />
       </Layout.Track>
     </Layout.Box>
   );

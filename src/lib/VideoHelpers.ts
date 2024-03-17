@@ -39,8 +39,15 @@ const recreateVideoChunk = (
   });
 };
 
+const clampTime = (time: number, maxTime: number) => {
+  if (time < 0) return 0;
+  if (time > maxTime) return maxTime;
+  return time;
+}
+
 export const VideoHelpers = {
   isChunkInTime,
   formatTime,
   recreateVideoChunk,
+  clampTime,
 };

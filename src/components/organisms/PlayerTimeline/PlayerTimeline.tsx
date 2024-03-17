@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 
+import { TIMELINE_PADDING_INLINE } from "~/constants";
 import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
-import { TimelineTicks } from "~/components/molecules";
+import { TimelineTicks, SliderThumb } from "~/components/molecules";
 import { IconButton } from "~/components/atoms";
 
 import { PlayerSlider } from "./PlayerSlider";
@@ -17,9 +18,13 @@ const MAX_TIME_TO_PX = 512;
 
 interface PlayerSliderProps {
   videoTrackBuffers: VideoTrackBuffer[];
+  seek(time: number): void;
 }
 
-export const PlayerTimeline = ({ videoTrackBuffers }: PlayerSliderProps) => {
+export const PlayerTimeline = ({
+  videoTrackBuffers,
+  seek,
+}: PlayerSliderProps) => {
   const [timeToPx, setTimeToPx] = useState(32);
 
   const zoom = () => {
@@ -28,6 +33,13 @@ export const PlayerTimeline = ({ videoTrackBuffers }: PlayerSliderProps) => {
 
   const unzoom = () => {
     setTimeToPx((prev) => Math.max(prev / 2, MIN_TIME_TO_PX));
+  };
+
+  const onSliderClick = (event: MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const position = event.clientX - rect.left;
+    const time = (position - TIMELINE_PADDING_INLINE) / timeToPx;
+    seek(time);
   };
 
   return (
@@ -55,11 +67,12 @@ export const PlayerTimeline = ({ videoTrackBuffers }: PlayerSliderProps) => {
           />
         </div>
       </div>
-      <div className={sliderBoxStyles}>
+      <div className={sliderBoxStyles} onClick={onSliderClick}>
         <PlayerSlider
           videoTrackBuffers={videoTrackBuffers}
           timeToPx={timeToPx}
         />
+        <SliderThumb timeToPx={timeToPx} />
       </div>
     </div>
   );

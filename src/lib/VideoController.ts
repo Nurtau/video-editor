@@ -115,7 +115,7 @@ export class VideoController {
       this.advanceLoopId = null;
     }
     this.resetVideo();
-    this.currentTime = time;
+    this.currentTime = VideoHelpers.clampTime(time, this.totalDuration);
     videoPlayerBus.dispatch("currentTime", this.currentTime);
     this.decodeVideoFrames();
 
@@ -125,11 +125,11 @@ export class VideoController {
   };
 
   playForward = () => {
-    this.seek(Math.min(this.totalDuration, this.currentTime + 5));
+    this.seek(this.currentTime + 5);
   };
 
   playBackward = () => {
-    this.seek(Math.max(0, this.currentTime - 5));
+    this.seek(this.currentTime - 5);
   };
 
   private advanceCurrentTime(now: number) {

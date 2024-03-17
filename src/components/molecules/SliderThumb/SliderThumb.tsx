@@ -1,8 +1,9 @@
 import { useRef, useEffect } from "react";
 
+import { TIMELINE_PADDING_INLINE } from "~/constants";
 import { videoPlayerBus } from "~/lib/VideoPlayerBus";
 
-import { thumbBoxStyles } from "./SliderThumb.css";
+import { thumbBoxStyles, draggerStyles, lineStyles } from "./SliderThumb.css";
 
 interface SliderThumbProps {
   timeToPx: number;
@@ -23,8 +24,10 @@ export const SliderThumb = ({ timeToPx }: SliderThumbProps) => {
 
     return videoPlayerBus.subscribe("currentTime", (time) => {
       currentTimeRef.current = time;
-      thumbBox.style.left = `${time * timeToPxRef.current}px`;
-      thumbBox.style.display = "block";
+      thumbBox.style.left = `${
+        time * timeToPxRef.current + TIMELINE_PADDING_INLINE
+      }px`;
+      thumbBox.style.display = "flex";
     });
   }, []);
 
@@ -38,5 +41,10 @@ export const SliderThumb = ({ timeToPx }: SliderThumbProps) => {
     thumbBox.style.left = `${currentTimeRef.current * timeToPx}px`;
   }, [timeToPx]);
 
-  return <div ref={thumbBoxRef} className={thumbBoxStyles} />;
+  return (
+    <div ref={thumbBoxRef} className={thumbBoxStyles}>
+      <div className={draggerStyles} />
+      <div className={lineStyles} />
+    </div>
+  );
 };
