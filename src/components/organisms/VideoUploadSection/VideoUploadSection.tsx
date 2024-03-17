@@ -4,7 +4,7 @@ import { Button, FileUploadButton, useFileReader } from "~/components/atoms";
 import { VideoBoxDemuxer, type VideoBox } from "~/lib/VideoBoxDemuxer";
 
 import { VideoBoxItem, type ExtendedVideoBox } from "./VideoBoxItem";
-import { useVideoBoxes } from "./VideoBoxesProvider";
+import { useVideoBoxes } from "./useVideoBoxes";
 import {
   uploadSectionBoxStyles,
   videosBoxStyles,

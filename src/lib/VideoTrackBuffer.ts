@@ -93,7 +93,7 @@ export class VideoTrackBuffer {
 
     for (const sample of samples) {
       let timestamp = (sample.cts * 1_000_000) / sample.timescale;
-      let duration = (sample.duration * 1_000_000) / sample.timescale;
+      const duration = (sample.duration * 1_000_000) / sample.timescale;
 
       // @TODO: first frame does not start at 0: this is quick workaround
       // learn more about it and find if there is a better solution
