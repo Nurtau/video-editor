@@ -179,6 +179,15 @@ export class VideoController {
         codecConfig,
         prefixTimestamp,
       );
+
+      const nextVideoChunks = trackBuffer.getNextVideoChunks(
+        this.furthestDecodingVideoChunk!,
+        1,
+      );
+
+      if (!nextVideoChunks || nextVideoChunks.length === 0) {
+        this.frameDecoder.flush();
+      }
     }
 
     const availableSpace =
@@ -191,6 +200,7 @@ export class VideoController {
       );
 
       if (!nextVideoChunks || nextVideoChunks.length === 0) {
+        this.frameDecoder.flush();
         const nextTrackBuffer = this.getNextActiveVideoTrack(trackBuffer);
 
         if (nextTrackBuffer) {
@@ -224,8 +234,8 @@ export class VideoController {
   private onDecodedVideoFrame = (videoFrame: VideoFrame) => {
     const currentTimeInMicros = Math.floor(1e6 * this.currentTime);
 
-    const decodingChunkIndex = this.decodingChunks.findIndex(
-      (chunk) => chunk.timestamp === videoFrame.timestamp,
+    const decodingChunkIndex = this.decodingChunks.findIndex((chunk) =>
+      VideoHelpers.isFrameTimestampEqual(chunk, videoFrame),
     );
 
     if (decodingChunkIndex !== -1) {
@@ -257,7 +267,7 @@ export class VideoController {
     for (let i = 0; i < this.videoTrackBuffers.length; i++) {
       if (
         prefixTimestamp <= this.currentTime &&
-        this.currentTime <
+        this.currentTime <=
           this.videoTrackBuffers[i].getDuration() + prefixTimestamp
       ) {
         trackBuffer = this.videoTrackBuffers[i];

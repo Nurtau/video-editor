@@ -1,4 +1,5 @@
 import { type MP4Sample } from "mp4box";
+import { VideoHelpers } from "./VideoHelpers";
 
 import { generateId } from "./helpers";
 
@@ -53,14 +54,23 @@ export class VideoTrackBuffer {
     const timeInMicros = Math.floor(time * 1e6);
 
     const containingGroup = this.videoChunksGroups.find((group) => {
-      return group.start <= timeInMicros && timeInMicros < group.end;
+      return group.start <= timeInMicros && timeInMicros <= group.end;
     });
 
     if (!containingGroup) return null;
 
-    // @TODO: it is non-optimized way to get video chunks dependencies
-    // in chrome, decoder does not decode all passed chunks
-    return containingGroup.videoChunks.slice();
+    const frameIndexAtTime = containingGroup.videoChunks.findIndex((chunk) => {
+      return VideoHelpers.isChunkInTime(chunk, timeInMicros);
+    });
+
+    if (frameIndexAtTime === -1) return null;
+
+    // in Chrome: when frame is decoded, always 2 frames are not decoded
+    // they are decoded only after flush()
+    // therefore we need to overslice dependencies
+    // to optimistically leave non-needed chunk not decoded
+    const overIndexes = 10;
+    return containingGroup.videoChunks.slice(0, frameIndexAtTime + overIndexes);
   };
 
   getNextVideoChunks = (videoChunk: EncodedVideoChunk, maxAmount: number) => {

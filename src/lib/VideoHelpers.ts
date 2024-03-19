@@ -6,7 +6,7 @@ interface Chunk {
 const isChunkInTime = (chunk: Chunk, timeInMicros: number) => {
   return (
     chunk.timestamp <= timeInMicros &&
-    timeInMicros < chunk.timestamp + chunk.duration!
+    timeInMicros <= chunk.timestamp + chunk.duration!
   );
 };
 
@@ -43,6 +43,17 @@ const clampTime = (time: number, maxTime: number) => {
   if (time < 0) return 0;
   if (time > maxTime) return maxTime;
   return time;
+};
+
+function getFrameTolerance(frame: EncodedVideoChunk | VideoFrame) {
+  return Math.ceil(frame.duration! / 16);
+}
+
+function isFrameTimestampEqual(
+  left: EncodedVideoChunk,
+  right: VideoFrame,
+): boolean {
+  return Math.abs(left.timestamp - right.timestamp) <= getFrameTolerance(left);
 }
 
 export const VideoHelpers = {
@@ -50,4 +61,5 @@ export const VideoHelpers = {
   formatTime,
   recreateVideoChunk,
   clampTime,
+  isFrameTimestampEqual,
 };
