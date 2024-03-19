@@ -9,6 +9,10 @@ interface VideoChunksGroup {
   videoChunks: EncodedVideoChunk[];
 }
 
+export interface VideoEffects {
+  blur: number;
+}
+
 interface NewDataProps {
   samples: MP4Sample[];
   videoDecoderConfig: VideoDecoderConfig;
@@ -21,6 +25,10 @@ export class VideoTrackBuffer {
     maxEnd: 0,
     start: 0,
     end: 0,
+  };
+
+  private effects: VideoEffects = {
+    blur: 0,
   };
 
   public id = generateId();
@@ -114,6 +122,14 @@ export class VideoTrackBuffer {
 
   getRange = () => {
     return this.range;
+  };
+
+  getEffects = () => {
+    return this.effects;
+  };
+
+  updateEffects = (newEffects: Partial<VideoEffects>) => {
+    this.effects = { ...this.effects, ...newEffects };
   };
 
   private populateChunkGroups(samples: MP4Sample[]) {

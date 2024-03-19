@@ -26,7 +26,6 @@ export const sliderBoxStyles = style({
   backgroundColor: tokens.colors["main-bg"],
   minWidth: "100%",
   width: "max-content",
-  cursor: "pointer",
 });
 
 export const zoomingControlsBoxStyles = style({

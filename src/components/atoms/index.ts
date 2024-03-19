@@ -3,4 +3,6 @@ export * from "./Layout";
 export * from "./PlayerCanvas";
 export * from "./Sidebar";
 export * from "./Button";
-export * from "./useFileReader";
+export * from "./useFileReader"; 
+export * from "./OverlayButton";
+export * from "./Slider";

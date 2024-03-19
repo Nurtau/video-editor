@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 
 import { TIMELINE_PADDING_INLINE } from "~/constants";
-import { videoPlayerBus } from "~/lib/VideoPlayerBus";
+import { eventsBus } from "~/lib/EventsBus";
 
 import { thumbBoxStyles, draggerStyles, lineStyles } from "./SliderThumb.css";
 
@@ -22,13 +22,16 @@ export const SliderThumb = ({ timeToPx }: SliderThumbProps) => {
       throw new Error("currentTimeNode must be specified");
     }
 
-    return videoPlayerBus.subscribe("currentTime", (time) => {
+    const updateThumbPosition = (time: number) => {
       currentTimeRef.current = time;
       thumbBox.style.left = `${
         time * timeToPxRef.current + TIMELINE_PADDING_INLINE
       }px`;
-      thumbBox.style.display = "flex";
-    });
+    };
+
+    updateThumbPosition(0);
+
+    return eventsBus.subscribe("currentTime", updateThumbPosition);
   }, []);
 
   useEffect(() => {
@@ -38,7 +41,9 @@ export const SliderThumb = ({ timeToPx }: SliderThumbProps) => {
       throw new Error("currentTimeNode must be specified");
     }
 
-    thumbBox.style.left = `${currentTimeRef.current * timeToPx}px`;
+    thumbBox.style.left = `${
+      currentTimeRef.current * timeToPx + TIMELINE_PADDING_INLINE
+    }px`;
   }, [timeToPx]);
 
   return (

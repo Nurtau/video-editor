@@ -2,7 +2,7 @@ import { VideoFrameDecoder } from "./VideoFrameDecoder";
 import { VideoRenderer } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { VideoHelpers } from "./VideoHelpers";
-import { videoPlayerBus } from "./VideoPlayerBus";
+import { eventsBus } from "./EventsBus";
 import { VideoExporter } from "./VideoExporter";
 import { VideoFrameChanger } from "./VideoFrameChanger";
 
@@ -74,7 +74,7 @@ export class VideoController {
       0,
     );
     this.totalDuration = totalDuration;
-    videoPlayerBus.dispatch("totalDuration", totalDuration);
+    eventsBus.dispatch("totalDuration", totalDuration);
   };
 
   setCanvasBox = (canvasBox: HTMLDivElement) => {
@@ -116,7 +116,7 @@ export class VideoController {
     }
     this.resetVideo();
     this.currentTime = VideoHelpers.clampTime(time, this.totalDuration);
-    videoPlayerBus.dispatch("currentTime", this.currentTime);
+    eventsBus.dispatch("currentTime", this.currentTime);
     this.decodeVideoFrames();
 
     if (this.playing) {
@@ -142,7 +142,7 @@ export class VideoController {
       this.currentTime = this.totalDuration;
     }
 
-    videoPlayerBus.dispatch("currentTime", this.currentTime);
+    eventsBus.dispatch("currentTime", this.currentTime);
     this.decodeVideoFrames();
     this.renderVideoFrame();
 

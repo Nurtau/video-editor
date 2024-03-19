@@ -1,3 +1,5 @@
+import { WebglHelpers } from "./WebglHelpers";
+
 const vertexShaderSource = `#version 300 es
 in vec2 a_position;
 in vec2 a_texCoord;
@@ -17,87 +19,37 @@ void main() {
 const fragmentShaderSource = `#version 300 es
 precision highp float;
 
-uniform sampler2D u_image;
-uniform float u_threshold;
 in vec2 v_texCoord;
+
+uniform sampler2D u_image;
+uniform vec2 u_resolution;
+uniform float u_blur;
 
 out vec4 outColor;
 
 void main() {
-  vec4 texture_color = texture(u_image, v_texCoord);
+  vec2 onePixel = vec2(1.0, 1.0) / u_resolution;
+  vec4 sum = vec4(0.0);
+  float totalWeight = 0.0;
 
-  if (u_threshold < 1.0) {
-    float grayscale = (texture_color.r + texture_color.g + texture_color.b) / 3.0;
-    float value = grayscale > 0.5 ? 1.0 : 0.0;
-    outColor = vec4(value, value, value, texture_color.a);
-  } else {
-    outColor = texture_color;
+  float step = u_blur > 10.0 ? round(u_blur / 10.0) : 1.0;
+
+
+  for (float x = -u_blur; x <= u_blur; x+=step) {
+    for (float y = -u_blur; y <= u_blur; y+=step) {
+      vec2 offset = vec2(x, y) * onePixel;
+      vec4 texture_color = texture(u_image, v_texCoord + offset);
+      
+      float weight = exp(-(x * x + y * y) / (u_blur * u_blur));
+      
+      sum += texture_color * weight;
+      totalWeight += weight;
+    }
   }
 
+  vec4 blurredColor = sum / totalWeight;
+  outColor = blurredColor;
 }`;
-
-const createShader = (
-  gl: WebGL2RenderingContext,
-  type: number,
-  source: string,
-) => {
-  const shader = gl.createShader(type);
-
-  if (!shader) {
-    throw new Error("TEMPORARY WORKAROUND");
-  }
-
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-  if (!success) {
-    throw new Error("TEMPORARY WORKAROUND");
-  }
-
-  return shader;
-};
-
-const createProgram = (
-  gl: WebGL2RenderingContext,
-  vertexShader: WebGLShader,
-  fragmentShader: WebGLShader,
-) => {
-  const program = gl.createProgram();
-
-  if (!program) {
-    throw new Error("TEMPORARY WORKAROUND");
-  }
-
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-
-  const success = gl.getProgramParameter(program, gl.LINK_STATUS);
-
-  if (!success) {
-    throw new Error("TEMPORARY WORKAROUND");
-  }
-
-  return program;
-};
-
-const setRectangle = (
-  gl: WebGL2RenderingContext,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-) => {
-  const x1 = x;
-  const x2 = x + width;
-  const y1 = y;
-  const y2 = y + height;
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]),
-    gl.STATIC_DRAW,
-  );
-};
 
 export class VideoFrameChanger {
   private canvas: HTMLCanvasElement;
@@ -105,8 +57,7 @@ export class VideoFrameChanger {
   private positionBuffer: any;
   private resolutionLocation: WebGLUniformLocation | null = null;
   private imageLocation: WebGLUniformLocation | null = null;
-  private thresholdLocation: WebGLUniformLocation | null = null;
-  private threshold: false | number = false;
+  private blurLocation: WebGLUniformLocation | null = null;
 
   constructor() {
     this.canvas = document.createElement("canvas");
@@ -118,14 +69,22 @@ export class VideoFrameChanger {
 
     this.gl = gl;
 
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-    const fragmentShader = createShader(
+    const vertexShader = WebglHelpers.createShader(
+      gl,
+      gl.VERTEX_SHADER,
+      vertexShaderSource,
+    );
+    const fragmentShader = WebglHelpers.createShader(
       gl,
       gl.FRAGMENT_SHADER,
       fragmentShaderSource,
     );
 
-    const program = createProgram(gl, vertexShader, fragmentShader);
+    const program = WebglHelpers.createProgram(
+      gl,
+      vertexShader,
+      fragmentShader,
+    );
 
     const positionAttributeLocation = gl.getAttribLocation(
       program,
@@ -137,7 +96,7 @@ export class VideoFrameChanger {
     );
     this.resolutionLocation = gl.getUniformLocation(program, "u_resolution");
     this.imageLocation = gl.getUniformLocation(program, "u_image");
-    this.thresholdLocation = gl.getUniformLocation(program, "u_threshold");
+    this.blurLocation = gl.getUniformLocation(program, "u_blur");
 
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
@@ -190,8 +149,8 @@ export class VideoFrameChanger {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
 
-    //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
@@ -202,15 +161,11 @@ export class VideoFrameChanger {
 
   // @TODO: rework changing filters
   changeFrameFilters = () => {
-    this.threshold = this.threshold ? false : 0.5;
-
-    this.gl.uniform1f(
-      this.thresholdLocation,
-      this.threshold ? this.threshold : 1.5,
-    );
+    this.gl.uniform1f(this.blurLocation, 50.0);
   };
 
   processFrame = (frame: VideoFrame) => {
+    this.changeFrameFilters();
     const mipLevel = 0;
     const internalFormat = this.gl.RGBA;
     const srcFormat = this.gl.RGBA;
@@ -238,7 +193,13 @@ export class VideoFrameChanger {
     this.gl.uniform1i(this.imageLocation, 0);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
 
-    setRectangle(this.gl, 0, 0, frame.codedWidth, frame.codedHeight);
+    WebglHelpers.setRectangle(
+      this.gl,
+      0,
+      0,
+      frame.codedWidth,
+      frame.codedHeight,
+    );
 
     const primitiveType = this.gl.TRIANGLES;
     const offset = 0;
