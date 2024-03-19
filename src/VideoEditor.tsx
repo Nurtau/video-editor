@@ -3,6 +3,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 
 import { VideoTrackBuffer } from "./lib/VideoTrackBuffer";
 import { VideoController } from "./lib/VideoController";
+import { eventsBus } from "./lib/EventsBus";
 import { Layout, PlayerCanvas, Sidebar } from "./components/atoms";
 import {
   VideoUploadSection,
@@ -41,6 +42,13 @@ export const VideoEditor = () => {
     if (!activeTrack) return;
     setActiveSidebarKey("effects");
   }, [activeTrack]);
+
+  useEffect(() => {
+    // @TODO: there is a room for optimisation, because modifiedVideoTrackId returns a changed track
+    return eventsBus.subscribe("modifiedVideoTrackId", () => {
+      setVideoTrackBuffers((cur) => [...cur]);
+    });
+  }, []);
 
   useEffect(() => {
     controller.setVideoTrackBuffers(videoTrackBuffers);

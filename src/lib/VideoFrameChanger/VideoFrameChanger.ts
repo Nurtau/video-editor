@@ -1,3 +1,4 @@
+import { type VideoEffects } from "../VideoTrackBuffer";
 import { WebglHelpers } from "./WebglHelpers";
 
 const vertexShaderSource = `#version 300 es
@@ -28,12 +29,16 @@ uniform float u_blur;
 out vec4 outColor;
 
 void main() {
+  if (u_blur == 0.0) {
+    outColor = texture(u_image, v_texCoord);
+    return;
+  }
+
   vec2 onePixel = vec2(1.0, 1.0) / u_resolution;
   vec4 sum = vec4(0.0);
   float totalWeight = 0.0;
 
   float step = u_blur > 10.0 ? round(u_blur / 10.0) : 1.0;
-
 
   for (float x = -u_blur; x <= u_blur; x+=step) {
     for (float y = -u_blur; y <= u_blur; y+=step) {
@@ -155,17 +160,10 @@ export class VideoFrameChanger {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     this.gl.useProgram(program);
-
-    this.changeFrameFilters();
   }
 
-  // @TODO: rework changing filters
-  changeFrameFilters = () => {
-    this.gl.uniform1f(this.blurLocation, 50.0);
-  };
-
-  processFrame = (frame: VideoFrame) => {
-    this.changeFrameFilters();
+  processFrame = (frame: VideoFrame, effects: VideoEffects) => {
+    this.changeFrameEffects(effects);
     const mipLevel = 0;
     const internalFormat = this.gl.RGBA;
     const srcFormat = this.gl.RGBA;
@@ -219,9 +217,10 @@ export class VideoFrameChanger {
       format: frame.format!,
     };
 
-    const newFrame = new VideoFrame(this.gl.canvas, init);
+    return new VideoFrame(this.gl.canvas, init);
+  };
 
-    frame.close();
-    return newFrame;
+  private changeFrameEffects = (effects: VideoEffects) => {
+    this.gl.uniform1f(this.blurLocation, effects.blur);
   };
 }

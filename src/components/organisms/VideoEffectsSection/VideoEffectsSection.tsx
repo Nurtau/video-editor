@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 import { Slider } from "~/components/atoms";
+import { eventsBus } from "~/lib/EventsBus";
+import { throttle } from "~/lib/helpers";
 
 import { sectionBoxStyles, titleStyles } from "./VideoEffectsSection.css";
 import { useActiveTrack } from "~/components/molecules";
@@ -27,6 +29,14 @@ interface ActiveTrackManipulationProps {
 const ActiveTrackManipulation = ({ track }: ActiveTrackManipulationProps) => {
   const [effects, setEffects] = useState(track.getEffects());
 
+  const throttledBusDispatch = useMemo(
+    () =>
+      throttle(() => {
+        eventsBus.dispatch("modifiedVideoTrackId", track.id);
+      }, 100),
+    [track.id],
+  );
+
   useEffect(() => {
     setEffects(track.getEffects());
   }, [track.id]);
@@ -34,6 +44,7 @@ const ActiveTrackManipulation = ({ track }: ActiveTrackManipulationProps) => {
   const updateEffects = (effects: Partial<VideoEffects>) => {
     track.updateEffects(effects);
     setEffects(track.getEffects());
+    throttledBusDispatch();
   };
 
   return (
