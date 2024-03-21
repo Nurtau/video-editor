@@ -14,15 +14,6 @@ export class VideoFrameChanger {
   }
 
   processFrame = (frame: VideoFrame, effects: VideoEffects) => {
-    const processedByPixelCanvas = this.perPixelProcessor.processTexture(
-      frame,
-      effects,
-    );
-    const processedCanvas = this.spatialConvolutionProcessor.processTexture(
-      processedByPixelCanvas,
-      effects,
-    );
-
     const init = {
       codedHeight: frame.codedHeight,
       codedWidth: frame.codedWidth,
@@ -32,6 +23,15 @@ export class VideoFrameChanger {
       timestamp: frame.timestamp,
       format: frame.format!,
     };
+
+    const processedByPixelCanvas = this.perPixelProcessor.processTexture(
+      frame,
+      effects,
+    );
+    const processedCanvas = this.spatialConvolutionProcessor.processTexture(
+      processedByPixelCanvas,
+      effects,
+    );
 
     return new VideoFrame(processedCanvas, init);
   };

@@ -12,6 +12,9 @@ interface VideoChunksGroup {
 export interface VideoEffects {
   blur: number;
   opacity: number;
+  brigthness: number;
+  saturation: number;
+  hue: number;
 }
 
 interface NewDataProps {
@@ -31,6 +34,9 @@ export class VideoTrackBuffer {
   private effects: VideoEffects = {
     blur: 0,
     opacity: 100,
+    brigthness: 0,
+    saturation: 0,
+    hue: 0,
   };
 
   public id = generateId();

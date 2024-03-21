@@ -53,9 +53,38 @@ const ActiveTrackManipulation = ({ track }: ActiveTrackManipulationProps) => {
         title="Opacity"
         min={0}
         max={100}
+        getValueText={(value) => `${value}%`}
         value={effects.opacity}
         onChange={(opacity) => {
           updateEffects({ opacity });
+        }}
+      />
+      <Slider
+        title="Hue Shift"
+        min={-180}
+        max={180}
+        getValueText={(value) => `${value} degrees`}
+        value={effects.hue}
+        onChange={(hue) => {
+          updateEffects({ hue });
+        }}
+      />
+      <Slider
+        title="Saturation"
+        min={-100}
+        max={100}
+        value={effects.saturation}
+        onChange={(saturation) => {
+          updateEffects({ saturation });
+        }}
+      />
+      <Slider
+        title="Brigthness"
+        min={-100}
+        max={100}
+        value={effects.brigthness}
+        onChange={(brigthness) => {
+          updateEffects({ brigthness });
         }}
       />
       <Slider
