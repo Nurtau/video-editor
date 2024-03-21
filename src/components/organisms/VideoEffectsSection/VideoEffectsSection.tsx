@@ -50,6 +50,15 @@ const ActiveTrackManipulation = ({ track }: ActiveTrackManipulationProps) => {
   return (
     <>
       <Slider
+        title="Opacity"
+        min={0}
+        max={100}
+        value={effects.opacity}
+        onChange={(opacity) => {
+          updateEffects({ opacity });
+        }}
+      />
+      <Slider
         title="Blur"
         min={0}
         max={100}

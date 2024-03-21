@@ -349,6 +349,7 @@ export class VideoController {
       }
     }
 
+    // @NOW: can move it up
     this.frameQueue = this.frameQueue.filter((frame, index) => {
       if (frameIndexesToRemove.has(index)) {
         frame.close();
