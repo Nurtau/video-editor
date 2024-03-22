@@ -8,7 +8,7 @@ import {
 } from "react";
 
 import { TIMELINE_PADDING_INLINE } from "~/constants";
-import { videoPlayerBus } from "~/lib/VideoPlayerBus";
+import { eventsBus } from "~/lib/EventsBus";
 import { VideoHelpers } from "~/lib/VideoHelpers";
 import {
   ticksBoxStyles,
@@ -80,7 +80,7 @@ export const TimelineTicks = ({ timeToPx }: TimelineTicksProps) => {
   }, [timeToPx]);
 
   useEffect(() => {
-    return videoPlayerBus.subscribe("totalDuration", setDuration);
+    return eventsBus.subscribe("totalDuration", setDuration);
   }, []);
 
   const clampedVideoDuration = Math.max(minDuration, videoDuration);

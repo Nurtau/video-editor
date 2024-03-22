@@ -1,12 +1,15 @@
 import { style } from "@vanilla-extract/css";
 
+import { Z_INDEXES } from "~/constants";
+
 export const thumbBoxStyles = style({
   position: "absolute",
+  zIndex: Z_INDEXES.SLIDER_THUMB,
   transform: "translateX(-50%)",
   height: "100%",
   width: "26px",
   backgroundColor: "rgba(83, 125, 218, 0.1)",
-  display: "none",
+  display: "flex",
   top: 0,
   bottom: 0,
   flexDirection: "column",

@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 
-import { videoPlayerBus } from "~/lib/VideoPlayerBus";
+import { eventsBus } from "~/lib/EventsBus";
 import { VideoHelpers } from "~/lib/VideoHelpers";
 import {
   videoTimeBoxStyles,
@@ -20,7 +20,7 @@ export const VideoTime = () => {
       throw new Error("currentTimeNode must be specified");
     }
 
-    return videoPlayerBus.subscribe("currentTime", (time) => {
+    return eventsBus.subscribe("currentTime", (time) => {
       currentTimeNode.innerText = VideoHelpers.formatTime(time, {
         includeMs: true,
       });
@@ -34,7 +34,7 @@ export const VideoTime = () => {
       throw new Error("totalTimeNode must be specified");
     }
 
-    return videoPlayerBus.subscribe("totalDuration", (time) => {
+    return eventsBus.subscribe("totalDuration", (time) => {
       totalTimeNode.innerText = VideoHelpers.formatTime(time, {
         includeMs: true,
       });

@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 
 import { VideoFrameDecoder } from "~/lib/VideoFrameDecoder";
 import { type VideoBox } from "~/lib/VideoBoxDemuxer";
-import { OverlayButton } from "~/components/atoms/OverlayButton";
+import { OverlayButton } from "~/components/atoms";
 
 import {
   boxItemStyles,

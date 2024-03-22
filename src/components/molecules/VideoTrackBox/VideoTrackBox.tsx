@@ -3,6 +3,10 @@ import { useState, useRef, useEffect } from "react";
 import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
 import { VideoTrackController } from "~/lib/VideoTrackController";
 
+import { useActiveTrack } from "../ActiveTrackProvider";
+import { Z_INDEXES } from "~/constants";
+import { OverlayButton } from "~/components/atoms";
+
 import { trackBoxStyles, frameBoxStyles } from "./VideoTrackBox.css";
 
 const PREVIEW_HEIGHT = 50;
@@ -56,6 +60,8 @@ export const VideoTrackBox = ({ timeToPx, buffer }: VideoTrackBoxProps) => {
     () => new VideoTrackController({ onEmit: setVideoTrackState }),
   );
 
+  const { activeTrack, setActiveTrack } = useActiveTrack();
+
   useEffect(() => {
     trackPreviewer.setVideoTrackBuffer(buffer);
   }, [buffer]);
@@ -68,7 +74,17 @@ export const VideoTrackBox = ({ timeToPx, buffer }: VideoTrackBoxProps) => {
   const previewFrames = findPreviewFrames(videoFrames, timeToPx, trackBoxWidth);
 
   return (
-    <div className={trackBoxStyles} style={{ width: trackBoxWidth }}>
+    <div
+      className={trackBoxStyles({
+        active: buffer.id === activeTrack?.id,
+      })}
+      style={{ width: trackBoxWidth }}
+    >
+      <OverlayButton
+        onClick={() => setActiveTrack(buffer)}
+        bgHoverColor="white10"
+        zIndex={Z_INDEXES.TIMELINE_TRACK}
+      />
       {previewFrames.map((frame, index) => (
         <PrewiewBox frame={frame} key={index} />
       ))}

@@ -2,7 +2,7 @@ import { VideoFrameDecoder } from "./VideoFrameDecoder";
 import { VideoRenderer } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { VideoHelpers } from "./VideoHelpers";
-import { videoPlayerBus } from "./VideoPlayerBus";
+import { eventsBus } from "./EventsBus";
 import { VideoExporter } from "./VideoExporter";
 import { VideoFrameChanger } from "./VideoFrameChanger";
 
@@ -26,9 +26,9 @@ export class VideoController {
   private videoTrackBuffers: VideoTrackBuffer[] = [];
 
   private playing = false;
-  private currentTime = 0;
-  private lastAdvanceTime = 0;
-  private totalDuration = 0;
+  private currentTimeInS = 0;
+  private lastAdvanceTimeInMs = 0;
+  private totalDurationInS = 0;
 
   private advanceLoopId: number | null = null;
   private scheduleRenderId: number | null = null;
@@ -66,15 +66,15 @@ export class VideoController {
     this.videoTrackBuffers = videoTrackBuffers;
 
     if (this.videoTrackBuffers.length > 0) {
-      this.seek(this.currentTime);
+      this.seek(this.currentTimeInS);
     }
 
     const totalDuration = this.videoTrackBuffers.reduce(
       (cur, trackBuffer) => cur + trackBuffer.getDuration(),
       0,
     );
-    this.totalDuration = totalDuration;
-    videoPlayerBus.dispatch("totalDuration", totalDuration);
+    this.totalDurationInS = totalDuration;
+    eventsBus.dispatch("totalDuration", totalDuration);
   };
 
   setCanvasBox = (canvasBox: HTMLDivElement) => {
@@ -85,13 +85,8 @@ export class VideoController {
     this.exporter.exportVideo(this.videoTrackBuffers);
   };
 
-  changeFrameFilters = () => {
-    this.frameChanger.changeFrameFilters();
-    this.seek(this.currentTime);
-  };
-
   play = () => {
-    this.lastAdvanceTime = performance.now();
+    this.lastAdvanceTimeInMs = performance.now();
     this.advanceLoopId = requestAnimationFrame((now) =>
       this.advanceCurrentTime(now),
     );
@@ -109,15 +104,30 @@ export class VideoController {
     this.onEmit({ playing: false });
   };
 
-  seek = (time: number) => {
+  seek = (timeInSeconds: number) => {
     if (this.advanceLoopId) {
       cancelAnimationFrame(this.advanceLoopId);
       this.advanceLoopId = null;
     }
-    this.resetVideo();
-    this.currentTime = VideoHelpers.clampTime(time, this.totalDuration);
-    videoPlayerBus.dispatch("currentTime", this.currentTime);
+
+    const isTimeCloseToCurrent =
+      timeInSeconds >= this.currentTimeInS &&
+      timeInSeconds - this.currentTimeInS < 0.01;
+
+    if (!isTimeCloseToCurrent) {
+      this.resetVideo();
+    }
+
+    this.resetScheduleRenderId();
+    this.lastRenderedVideoFrameTs = null;
+
+    this.currentTimeInS = VideoHelpers.clampTime(
+      timeInSeconds,
+      this.totalDurationInS,
+    );
+    eventsBus.dispatch("currentTime", this.currentTimeInS);
     this.decodeVideoFrames();
+    this.scheduleRenderVideoFrameIfPossible();
 
     if (this.playing) {
       this.play();
@@ -125,24 +135,24 @@ export class VideoController {
   };
 
   playForward = () => {
-    this.seek(this.currentTime + 5);
+    this.seek(this.currentTimeInS + 5);
   };
 
   playBackward = () => {
-    this.seek(this.currentTime - 5);
+    this.seek(this.currentTimeInS - 5);
   };
 
   private advanceCurrentTime(now: number) {
-    this.currentTime = this.getCurrentVideoTime(now);
-    this.lastAdvanceTime = now;
+    this.currentTimeInS = this.getCurrentVideoTime(now);
+    this.lastAdvanceTimeInMs = now;
     let reachedEnd = false;
 
-    if (this.currentTime >= this.totalDuration) {
+    if (this.currentTimeInS >= this.totalDurationInS) {
       reachedEnd = true;
-      this.currentTime = this.totalDuration;
+      this.currentTimeInS = this.totalDurationInS;
     }
 
-    videoPlayerBus.dispatch("currentTime", this.currentTime);
+    eventsBus.dispatch("currentTime", this.currentTimeInS);
     this.decodeVideoFrames();
     this.renderVideoFrame();
 
@@ -169,7 +179,10 @@ export class VideoController {
 
     if (this.furthestDecodingVideoChunk === null) {
       // it can be negative when we are decoding frames of next track
-      const dependenciesAtTs = Math.max(this.currentTime - prefixTimestamp, 0);
+      const dependenciesAtTs = Math.max(
+        this.currentTimeInS - prefixTimestamp,
+        0,
+      );
       const videoChunksDependencies =
         trackBuffer.getVideoChunksDependencies(dependenciesAtTs);
 
@@ -232,7 +245,7 @@ export class VideoController {
   }
 
   private onDecodedVideoFrame = (videoFrame: VideoFrame) => {
-    const currentTimeInMicros = Math.floor(1e6 * this.currentTime);
+    const currentTimeInMicros = Math.floor(1e6 * this.currentTimeInS);
 
     const decodingChunkIndex = this.decodingChunks.findIndex((chunk) =>
       VideoHelpers.isFrameTimestampEqual(chunk, videoFrame),
@@ -247,9 +260,11 @@ export class VideoController {
       return;
     }
 
-    const newFrame = this.frameChanger.processFrame(videoFrame);
-    this.frameQueue.push(newFrame);
+    this.frameQueue.push(videoFrame);
+    this.scheduleRenderVideoFrameIfPossible();
+  };
 
+  private scheduleRenderVideoFrameIfPossible() {
     if (
       this.lastRenderedVideoFrameTs === null &&
       this.scheduleRenderId === null
@@ -258,17 +273,16 @@ export class VideoController {
         this.renderVideoFrame(),
       );
     }
-  };
+  }
 
-  private getActiveVideoTrack() {
+  private getActiveVideoTrackAt(timeInS: number) {
     let trackBuffer: VideoTrackBuffer | null = null;
     let prefixTimestamp = 0;
 
     for (let i = 0; i < this.videoTrackBuffers.length; i++) {
       if (
-        prefixTimestamp <= this.currentTime &&
-        this.currentTime <=
-          this.videoTrackBuffers[i].getDuration() + prefixTimestamp
+        prefixTimestamp <= timeInS &&
+        timeInS <= this.videoTrackBuffers[i].getDuration() + prefixTimestamp
       ) {
         trackBuffer = this.videoTrackBuffers[i];
         break;
@@ -278,6 +292,10 @@ export class VideoController {
 
     if (!trackBuffer) return null;
     return { prefixTs: prefixTimestamp, buffer: trackBuffer };
+  }
+
+  private getActiveVideoTrack() {
+    return this.getActiveVideoTrackAt(this.currentTimeInS);
   }
 
   private getNextActiveVideoTrack(trackBuffer: VideoTrackBuffer) {
@@ -299,7 +317,7 @@ export class VideoController {
   private renderVideoFrame() {
     this.resetScheduleRenderId();
 
-    const currentTimeInMicros = Math.floor(1e6 * this.currentTime);
+    const currentTimeInMicros = Math.floor(1e6 * this.currentTimeInS);
     const frameIndexesToRemove = new Set<number>();
 
     this.frameQueue.forEach((frame, index) => {
@@ -316,12 +334,22 @@ export class VideoController {
       const currentFrame = this.frameQueue[currentFrameIndex];
 
       if (this.lastRenderedVideoFrameTs !== currentFrame.timestamp) {
-        this.renderer.draw(currentFrame);
+        const timestampInS = currentFrame.timestamp / 1e6;
+        const videoTrack = this.getActiveVideoTrackAt(timestampInS);
+
+        if (!videoTrack) return;
+
+        const processedFrame = this.frameChanger.processFrame(
+          currentFrame,
+          videoTrack.buffer.getEffects(),
+        );
+        this.renderer.draw(processedFrame);
+        processedFrame.close();
         this.lastRenderedVideoFrameTs = currentFrame.timestamp;
       }
-      frameIndexesToRemove.add(currentFrameIndex);
     }
 
+    // @NOW: can move it up
     this.frameQueue = this.frameQueue.filter((frame, index) => {
       if (frameIndexesToRemove.has(index)) {
         frame.close();
@@ -332,9 +360,7 @@ export class VideoController {
   }
 
   private resetVideo() {
-    this.resetScheduleRenderId();
     this.furthestDecodingVideoChunk = null;
-    this.lastRenderedVideoFrameTs = null;
     this.frameDecoder.reset();
     this.frameQueue.forEach((frame) => frame.close());
     this.frameQueue = [];
@@ -349,8 +375,8 @@ export class VideoController {
     }
   }
 
-  private getCurrentVideoTime(now: number) {
-    const elapsedTime = (now - this.lastAdvanceTime) / 1000;
-    return this.currentTime + elapsedTime;
+  private getCurrentVideoTime(nowInMs: number) {
+    const elapsedTime = (nowInMs - this.lastAdvanceTimeInMs) / 1000;
+    return this.currentTimeInS + elapsedTime;
   }
 }

@@ -11,6 +11,7 @@ export const spacings = {
   "6": "24px",
   "7": "28px",
   "8": "32px",
+  "10": "40px",
   "12": "48px",
 };
 

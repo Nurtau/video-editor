@@ -1,1 +1,7 @@
 export const TIMELINE_PADDING_INLINE = 48;
+
+export const Z_INDEXES = {
+  SLIDER_THUMB: 1,
+  TIMELINE_BG: 2,
+  TIMELINE_TRACK: 3,
+};

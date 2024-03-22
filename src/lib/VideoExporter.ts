@@ -1,6 +1,6 @@
 import { createFile, type MP4File } from "mp4box";
 
-import { VideoTrackBuffer } from "./VideoTrackBuffer";
+import { VideoTrackBuffer, type VideoEffects } from "./VideoTrackBuffer";
 
 /*
  * IN SAFARI: exported video is huge in memory because chunk type is always key
@@ -24,7 +24,10 @@ export class VideoExporter {
   private nextKeyframeTs = 0;
   private mp4File: MP4File;
   private trackId: number | null = null;
-  private processFrame: (frame: VideoFrame) => VideoFrame;
+  private processFrame: (
+    frame: VideoFrame,
+    effects: VideoEffects,
+  ) => VideoFrame;
 
   constructor({
     processFrame,
@@ -80,8 +83,9 @@ export class VideoExporter {
 
   private onDecode = async (frame: VideoFrame) => {
     let keyFrame = false;
-
-    const processedFrame = this.processFrame(frame);
+    
+    // @TODO: fix this moment, when reimplementing VideoExporter
+    const processedFrame = this.processFrame(frame, null as any);
 
     if (processedFrame.timestamp >= this.nextKeyframeTs) {
       keyFrame = true;

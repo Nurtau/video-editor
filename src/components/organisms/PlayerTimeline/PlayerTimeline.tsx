@@ -3,8 +3,9 @@ import { useState, type MouseEvent } from "react";
 import { TIMELINE_PADDING_INLINE } from "~/constants";
 import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
 import { TimelineTicks, SliderThumb } from "~/components/molecules";
-import { IconButton } from "~/components/atoms";
+import { IconButton, OverlayButton } from "~/components/atoms";
 
+import { Z_INDEXES } from "~/constants";
 import { PlayerSlider } from "./PlayerSlider";
 import {
   timelineBoxStyles,
@@ -35,7 +36,7 @@ export const PlayerTimeline = ({
     setTimeToPx((prev) => Math.max(prev / 2, MIN_TIME_TO_PX));
   };
 
-  const onSliderClick = (event: MouseEvent<HTMLDivElement>) => {
+  const onSliderClick = (event: MouseEvent<HTMLButtonElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const position = event.clientX - rect.left;
     const time = (position - TIMELINE_PADDING_INLINE) / timeToPx;
@@ -67,7 +68,13 @@ export const PlayerTimeline = ({
           />
         </div>
       </div>
-      <div className={sliderBoxStyles} onClick={onSliderClick}>
+      <div className={sliderBoxStyles}>
+        <OverlayButton
+          onClick={onSliderClick}
+          bgHoverColor="transparent"
+          bgColor="transparent"
+          zIndex={Z_INDEXES.TIMELINE_BG}
+        />
         <PlayerSlider
           videoTrackBuffers={videoTrackBuffers}
           timeToPx={timeToPx}

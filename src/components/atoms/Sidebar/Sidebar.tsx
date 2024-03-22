@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { type IconName } from "../Icon";
 import { IconButton } from "../IconButton";
 
@@ -8,37 +8,43 @@ import {
   contextBoxStyles,
 } from "./Sidebar.css";
 
-interface SidebarItem {
+interface SidebarItem<T extends string> {
   icon: IconName;
-  value: string;
+  key: T;
   content(): ReactNode;
 }
 
-interface SidebarProps {
-  items: SidebarItem[];
+interface SidebarProps<T extends string> {
+  activeKey: T;
+  setActiveKey(value: T): void;
+  items: SidebarItem<T>[];
 }
 
-export const Sidebar = ({ items }: SidebarProps) => {
-  const [activeItem, setActiveItem] = useState(items[0]);
+export const Sidebar = <T extends string>({
+  activeKey,
+  setActiveKey,
+  items,
+}: SidebarProps<T>) => {
+  const activeItem = items.find((item) => item.key === activeKey);
 
   return (
     <div className={sidebarBoxStyles}>
       <div className={iconListStyles}>
         {items.map((item) => (
           <IconButton
-            key={item.value}
+            key={item.key}
             name={item.icon}
-            active={activeItem.value === item.value}
+            active={activeKey === item.key}
             iconColor="pale-gray"
             iconActiveColor="pale-blue"
             bgHoverColor="white5"
             iconSizing="lg"
             p="4"
-            onClick={() => setActiveItem(item)}
+            onClick={() => setActiveKey(item.key)}
           />
         ))}
       </div>
-      <div className={contextBoxStyles}>{activeItem.content()}</div>
+      <div className={contextBoxStyles}>{activeItem?.content()}</div>
     </div>
   );
 };

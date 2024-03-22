@@ -3,9 +3,20 @@ import { useHotkeys } from "react-hotkeys-hook";
 
 import { VideoTrackBuffer } from "./lib/VideoTrackBuffer";
 import { VideoController } from "./lib/VideoController";
+import { eventsBus } from "./lib/EventsBus";
 import { Layout, PlayerCanvas, Sidebar } from "./components/atoms";
-import { VideoUploadSection, PlayerTimeline } from "./components/organisms";
-import { PlayerControls } from "./components/molecules";
+import {
+  VideoUploadSection,
+  VideoEffectsSection,
+  PlayerTimeline,
+} from "./components/organisms";
+import { PlayerControls, useActiveTrack } from "./components/molecules";
+
+type SidebarKey =
+  | "videos-upload"
+  | "video-settings"
+  | "effects"
+  | "video-export";
 
 export const VideoEditor = () => {
   const [videoTrackBuffers, setVideoTrackBuffers] = useState<
@@ -23,6 +34,22 @@ export const VideoEditor = () => {
     });
   });
 
+  const [activeSidebarKey, setActiveSidebarKey] =
+    useState<SidebarKey>("videos-upload");
+  const { activeTrack } = useActiveTrack();
+
+  useEffect(() => {
+    if (!activeTrack) return;
+    setActiveSidebarKey("effects");
+  }, [activeTrack]);
+
+  useEffect(() => {
+    // @TODO: there is a room for optimisation, because modifiedVideoTrackId returns a changed track
+    return eventsBus.subscribe("modifiedVideoTrackId", () => {
+      setVideoTrackBuffers((cur) => [...cur]);
+    });
+  }, []);
+
   useEffect(() => {
     controller.setVideoTrackBuffers(videoTrackBuffers);
   }, [videoTrackBuffers]);
@@ -38,11 +65,13 @@ export const VideoEditor = () => {
   return (
     <Layout.Box>
       <Layout.Controls>
-        <Sidebar
+        <Sidebar<SidebarKey>
+          activeKey={activeSidebarKey}
+          setActiveKey={setActiveSidebarKey}
           items={[
             {
               icon: "Camera",
-              value: "videos",
+              key: "videos-upload",
               content: () => (
                 <VideoUploadSection
                   onMoveToTimeline={(box) => {
@@ -58,17 +87,17 @@ export const VideoEditor = () => {
             },
             {
               icon: "Sliders",
-              value: "video-settings",
+              key: "video-settings",
               content: () => <div>VIDEO-settings</div>,
             },
             {
               icon: "PaintBrush",
-              value: "effects",
-              content: () => <div>VIDEO-effects</div>,
+              key: "effects",
+              content: () => <VideoEffectsSection />,
             },
             {
               icon: "Merge",
-              value: "video-export",
+              key: "video-export",
               content: () => <div>VIDEO-export</div>,
             },
           ]}
