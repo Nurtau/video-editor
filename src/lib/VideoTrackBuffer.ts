@@ -31,17 +31,22 @@ export class VideoTrackBuffer {
     end: 0,
   };
 
-  private effects: VideoEffects = {
-    blur: 0,
-    opacity: 100,
-    brigthness: 0,
-    saturation: 0,
-    hue: 0,
-  };
-
+  private effects: VideoEffects;
   public id = generateId();
 
+  static getDefaultEffects(): VideoEffects {
+    return {
+      blur: 0,
+      opacity: 100,
+      brigthness: 0,
+      saturation: 0,
+      hue: 0,
+    };
+  }
+
   constructor(props: NewDataProps | VideoTrackBuffer) {
+    this.effects = VideoTrackBuffer.getDefaultEffects();
+
     if (props instanceof VideoTrackBuffer) {
       this.videoChunksGroups = props.getVideoChunksGroups();
       this.codecConfig = props.getCodecConfig();
@@ -138,6 +143,10 @@ export class VideoTrackBuffer {
 
   updateEffects = (newEffects: Partial<VideoEffects>) => {
     this.effects = { ...this.effects, ...newEffects };
+  };
+
+  resetEffects = () => {
+    this.effects = VideoTrackBuffer.getDefaultEffects();
   };
 
   private populateChunkGroups(samples: MP4Sample[]) {

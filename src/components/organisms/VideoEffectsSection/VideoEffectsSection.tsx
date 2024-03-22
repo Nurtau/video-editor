@@ -1,15 +1,21 @@
 import { useState, useMemo, useEffect } from "react";
 
-import { Slider } from "~/components/atoms";
+import { Slider, Button } from "~/components/atoms";
 import { eventsBus } from "~/lib/EventsBus";
 import { throttle } from "~/lib/helpers";
-
-import { sectionBoxStyles, titleStyles } from "./VideoEffectsSection.css";
 import { useActiveTrack } from "~/components/molecules";
 import {
   type VideoTrackBuffer,
   type VideoEffects,
 } from "~/lib/VideoTrackBuffer";
+
+import {
+  sectionBoxStyles,
+  titleStyles,
+  slidersBoxStyles,
+  activeTrackBoxStyles,
+  resetButtonBoxStyles,
+} from "./VideoEffectsSection.css";
 
 export const VideoEffectsSection = () => {
   const { activeTrack } = useActiveTrack();
@@ -47,55 +53,68 @@ const ActiveTrackManipulation = ({ track }: ActiveTrackManipulationProps) => {
     throttledBusDispatch();
   };
 
+  const resetEffects = () => {
+    track.resetEffects();
+    setEffects(track.getEffects());
+    throttledBusDispatch();
+  };
+
   return (
-    <>
-      <Slider
-        title="Opacity"
-        min={0}
-        max={100}
-        getValueText={(value) => `${value}%`}
-        value={effects.opacity}
-        onChange={(opacity) => {
-          updateEffects({ opacity });
-        }}
-      />
-      <Slider
-        title="Hue Shift"
-        min={-180}
-        max={180}
-        getValueText={(value) => `${value} degrees`}
-        value={effects.hue}
-        onChange={(hue) => {
-          updateEffects({ hue });
-        }}
-      />
-      <Slider
-        title="Saturation"
-        min={-100}
-        max={100}
-        value={effects.saturation}
-        onChange={(saturation) => {
-          updateEffects({ saturation });
-        }}
-      />
-      <Slider
-        title="Brigthness"
-        min={-100}
-        max={100}
-        value={effects.brigthness}
-        onChange={(brigthness) => {
-          updateEffects({ brigthness });
-        }}
-      />
-      <Slider
-        title="Blur"
-        min={0}
-        max={100}
-        value={effects.blur}
-        onChange={(blur) => {
-          updateEffects({ blur });
-        }}
-      />
-    </>
+    <div className={activeTrackBoxStyles}>
+      <div className={slidersBoxStyles}>
+        <Slider
+          title="Opacity"
+          min={0}
+          max={100}
+          getValueText={(value) => `${value}%`}
+          value={effects.opacity}
+          onChange={(opacity) => {
+            updateEffects({ opacity });
+          }}
+        />
+        <Slider
+          title="Hue Shift"
+          min={-180}
+          max={180}
+          getValueText={(value) => `${value} degrees`}
+          value={effects.hue}
+          onChange={(hue) => {
+            updateEffects({ hue });
+          }}
+        />
+        <Slider
+          title="Saturation"
+          min={-100}
+          max={100}
+          value={effects.saturation}
+          onChange={(saturation) => {
+            updateEffects({ saturation });
+          }}
+        />
+        <Slider
+          title="Brigthness"
+          min={-100}
+          max={100}
+          value={effects.brigthness}
+          onChange={(brigthness) => {
+            updateEffects({ brigthness });
+          }}
+        />
+        <Slider
+          title="Blur"
+          min={0}
+          max={100}
+          value={effects.blur}
+          onChange={(blur) => {
+            updateEffects({ blur });
+          }}
+        />
+      </div>
+      <div className={resetButtonBoxStyles}>
+        <Button variant="secondary" maxWidth="16rem" onClick={resetEffects}>
+          Reset
+        </Button>
+      </div>
+    </div>
   );
 };

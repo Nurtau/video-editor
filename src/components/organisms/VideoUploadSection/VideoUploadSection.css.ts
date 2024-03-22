@@ -14,7 +14,7 @@ export const videosBoxStyles = style({
   paddingInline: tokens.spacings["7"],
   display: "flex",
   flexDirection: "column",
-  gap: tokens.spacings["6"],
+  gap: tokens.spacings["8"],
   overflowY: "auto",
 });
 
