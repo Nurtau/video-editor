@@ -63,18 +63,35 @@ export class VideoController {
   }
 
   setVideoTrackBuffers = (videoTrackBuffers: VideoTrackBuffer[]) => {
-    this.videoTrackBuffers = videoTrackBuffers;
+    const nextBufferIds = new Set(videoTrackBuffers.map((track) => track.id));
+    let bufferWasDeleted = false;
 
-    if (this.videoTrackBuffers.length > 0) {
-      this.seek(this.currentTimeInS);
+    this.videoTrackBuffers.forEach((buffer) => {
+      if (!nextBufferIds.has(buffer.id)) {
+        bufferWasDeleted = true;
+      }
+    });
+
+    if (bufferWasDeleted) {
+      this.resetVideo();
+      this.renderer.clear();
     }
 
+    this.videoTrackBuffers = videoTrackBuffers;
     const totalDuration = this.videoTrackBuffers.reduce(
       (cur, trackBuffer) => cur + trackBuffer.getDuration(),
       0,
     );
+
     this.totalDurationInS = totalDuration;
     eventsBus.dispatch("totalDuration", totalDuration);
+
+    if (this.videoTrackBuffers.length > 0) {
+      this.seek(this.currentTimeInS);
+    } else {
+      this.currentTimeInS = 0;
+      eventsBus.dispatch("currentTime", this.currentTimeInS);
+    }
   };
 
   setCanvasBox = (canvasBox: HTMLDivElement) => {

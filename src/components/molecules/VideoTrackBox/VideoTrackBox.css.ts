@@ -37,7 +37,6 @@ export const trimMovingThumbBoxStyles = style({
   right: 0,
 });
 
-// @TODO: what about animating line black <-> white
 export const trimMovingThumbStyles = style({
   position: "absolute",
   width: 1,

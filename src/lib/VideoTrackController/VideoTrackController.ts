@@ -33,14 +33,37 @@ export class VideoTrackController {
 
     const range = videoTrackBuffer.getRange();
 
-    // @NOW: add code so at least one closest key frame will be added to videoKeyFrames
     const videoChunkGroups = videoTrackBuffer.getVideoChunksGroups();
-    const videoKeyFrames = videoChunkGroups
-      .map((group) => group.videoChunks[0])
-      .filter((chunk) => {
-        const timestampInS = chunk.timestamp / 1e6;
-        return range.start <= timestampInS && timestampInS <= range.end;
+    const videoAllKeyFrames = videoChunkGroups.map(
+      (group) => group.videoChunks[0],
+    );
+
+    const videoKeyFrames = videoAllKeyFrames.filter((chunk) => {
+      const timestampInS = chunk.timestamp / 1e6;
+      return range.start <= timestampInS && timestampInS <= range.end;
+    });
+
+    if (videoKeyFrames.length === 0) {
+      let closestFrame: EncodedVideoChunk | null = null;
+
+      videoAllKeyFrames.forEach((keyFrame) => {
+        if (!closestFrame) {
+          closestFrame = keyFrame;
+        } else {
+          const midTrack = (range.start + range.end) / 2;
+          if (
+            Math.abs(keyFrame.timestamp / 1e6 - midTrack) <
+            Math.abs(closestFrame.timestamp / 1e6 - midTrack)
+          ) {
+            closestFrame = keyFrame;
+          }
+        }
       });
+
+      if (closestFrame) {
+        videoKeyFrames.push(closestFrame);
+      }
+    }
 
     let shortenedKeyFrames;
 

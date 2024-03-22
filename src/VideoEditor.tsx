@@ -59,8 +59,6 @@ export const VideoEditor = () => {
   }, []);
 
   useEffect(() => {
-    // @NOW: should fully reset controller
-    // @NOW: should clear canvas
     return eventsBus.subscribe("deletedVideoTrackId", (id) => {
       setVideoTrackBuffers((curTracks) =>
         curTracks.filter((track) => track.id !== id),
