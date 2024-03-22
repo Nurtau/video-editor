@@ -6,7 +6,7 @@ export function Scissors(props: SVGProps<SVGSVGElement>) {
       width="1em"
       height="1em"
       fill="none"
-      viewBox="0 0 28 34"
+      viewBox="0 0 30 24"
       {...props}
     >
       <g
@@ -23,7 +23,7 @@ export function Scissors(props: SVGProps<SVGSVGElement>) {
           id="scissors_svg__a"
           width={36}
           height={36}
-          x={-4}
+          x={0}
           y={0}
           colorInterpolationFilters="sRGB"
           filterUnits="userSpaceOnUse"

@@ -1,5 +1,6 @@
 import { style } from "@vanilla-extract/css";
 import { tokens } from "~/ui-tokens";
+import { Z_INDEXES } from "~/constants";
 
 const HEADER_WIDTH = 60;
 
@@ -20,12 +21,18 @@ export const headerBoxStyles = style({
 });
 
 export const sliderBoxStyles = style({
-  position: "relative",
   flex: 1,
   borderTop: `solid 2px ${tokens.colors["secondary-border"]}`,
   backgroundColor: tokens.colors["main-bg"],
-  minWidth: "100%",
   width: "max-content",
+  minWidth: "100%",
+});
+
+export const sliderInnerBoxStyles = style({
+  position: "relative",
+  height: "100%",
+  width: "max-content",
+  minWidth: "100%",
 });
 
 export const zoomingControlsBoxStyles = style({
@@ -49,4 +56,22 @@ export const zoomingControlsBoxStyles = style({
     top: 0,
     bottom: 0,
   },
+});
+
+export const timelineControlsBoxStyles = style({
+  position: "absolute",
+  zIndex: Z_INDEXES.TIMELINE_CONTROLS,
+  width: "68px",
+  top: HEADER_WIDTH + 14,
+  left: 12,
+  bottom: 12,
+  backgroundColor: tokens.colors["secondary-bg"],
+  borderRadius: tokens.borderRadiuses["2.5"],
+  border: `solid 2px ${tokens.colors["secondary-border"]}`,
+  boxShadow: "0 4px 4px rgba(0, 0, 0, 0.25)",
+  display: "flex",
+  flexDirection: "column",
+  paddingInline: tokens.spacings["1"],
+  paddingBlock: tokens.spacings["1.5"],
+  gap: tokens.spacings["1"],
 });

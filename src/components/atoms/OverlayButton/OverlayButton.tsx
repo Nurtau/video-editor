@@ -1,5 +1,5 @@
 import { assignInlineVars } from "@vanilla-extract/dynamic";
-import { type MouseEvent } from "react";
+import { type MouseEvent, type CSSProperties } from "react";
 
 import { tokens, type ColorName, type BorderRadius } from "~/ui-tokens";
 import {
@@ -14,6 +14,7 @@ interface OverlayButtonProps {
   bgHoverColor?: ColorName;
   borderRadius?: BorderRadius;
   zIndex?: number;
+  cursor?: CSSProperties["cursor"];
 }
 
 export const OverlayButton = ({
@@ -22,6 +23,7 @@ export const OverlayButton = ({
   bgHoverColor = "white50",
   borderRadius,
   zIndex,
+  cursor,
 }: OverlayButtonProps) => {
   return (
     <button
@@ -29,6 +31,7 @@ export const OverlayButton = ({
       onClick={onClick}
       className={overlayButtonStyles}
       style={{
+        cursor: cursor ? cursor : undefined,
         zIndex,
         borderRadius: borderRadius
           ? tokens.borderRadiuses[borderRadius]

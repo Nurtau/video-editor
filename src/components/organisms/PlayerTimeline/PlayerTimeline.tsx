@@ -1,9 +1,10 @@
 import { useState, type MouseEvent } from "react";
 
-import { TIMELINE_PADDING_INLINE } from "~/constants";
+import { TIMELINE_PADDING } from "~/constants";
 import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
 import { TimelineTicks, SliderThumb } from "~/components/molecules";
-import { IconButton, OverlayButton } from "~/components/atoms";
+import { IconButton, OverlayButton, type IconName } from "~/components/atoms";
+import { SliderControlType } from "~/types";
 
 import { Z_INDEXES } from "~/constants";
 import { PlayerSlider } from "./PlayerSlider";
@@ -11,7 +12,9 @@ import {
   timelineBoxStyles,
   headerBoxStyles,
   sliderBoxStyles,
+  sliderInnerBoxStyles,
   zoomingControlsBoxStyles,
+  timelineControlsBoxStyles,
 } from "./PlayerTimeline.css";
 
 const MIN_TIME_TO_PX = 1;
@@ -22,10 +25,32 @@ interface PlayerSliderProps {
   seek(time: number): void;
 }
 
+interface ControlItem {
+  type: SliderControlType;
+  icon: IconName;
+}
+
+const CONTROL_ITEMS: ControlItem[] = [
+  {
+    type: "default",
+    icon: "Cursor",
+  },
+  {
+    type: "trim",
+    icon: "Scissors",
+  },
+  {
+    type: "delete",
+    icon: "Trash",
+  },
+];
+
 export const PlayerTimeline = ({
   videoTrackBuffers,
   seek,
 }: PlayerSliderProps) => {
+  const [activeControlType, setActiveControlType] =
+    useState<SliderControlType>("default");
   const [timeToPx, setTimeToPx] = useState(32);
 
   const zoom = () => {
@@ -39,7 +64,7 @@ export const PlayerTimeline = ({
   const onSliderClick = (event: MouseEvent<HTMLButtonElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const position = event.clientX - rect.left;
-    const time = (position - TIMELINE_PADDING_INLINE) / timeToPx;
+    const time = (position - TIMELINE_PADDING.LEFT) / timeToPx;
     seek(time);
   };
 
@@ -69,17 +94,37 @@ export const PlayerTimeline = ({
         </div>
       </div>
       <div className={sliderBoxStyles}>
-        <OverlayButton
-          onClick={onSliderClick}
-          bgHoverColor="transparent"
-          bgColor="transparent"
-          zIndex={Z_INDEXES.TIMELINE_BG}
-        />
-        <PlayerSlider
-          videoTrackBuffers={videoTrackBuffers}
-          timeToPx={timeToPx}
-        />
-        <SliderThumb timeToPx={timeToPx} />
+        <div className={timelineControlsBoxStyles}>
+          {CONTROL_ITEMS.map((item) => (
+            <IconButton
+              key={item.type}
+              name={item.icon}
+              active={activeControlType === item.type}
+              iconColor="pale-gray"
+              iconActiveColor="pale-blue"
+              bgHoverColor="white5"
+              iconSizing="md"
+              p="4"
+              onClick={() => setActiveControlType(item.type)}
+            />
+          ))}
+        </div>
+        <div className={sliderInnerBoxStyles}>
+          {activeControlType === "default" && (
+            <OverlayButton
+              onClick={onSliderClick}
+              bgHoverColor="transparent"
+              bgColor="transparent"
+              zIndex={Z_INDEXES.TIMELINE_BG}
+            />
+          )}
+          <PlayerSlider
+            videoTrackBuffers={videoTrackBuffers}
+            timeToPx={timeToPx}
+            controlType={activeControlType}
+          />
+          <SliderThumb timeToPx={timeToPx} />
+        </div>
       </div>
     </div>
   );

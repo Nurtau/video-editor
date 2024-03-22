@@ -17,6 +17,13 @@ export interface VideoEffects {
   hue: number;
 }
 
+// in seconds
+interface VideoRange {
+  start: number;
+  end: number;
+  maxEnd: number;
+}
+
 interface NewDataProps {
   samples: MP4Sample[];
   videoDecoderConfig: VideoDecoderConfig;
@@ -25,11 +32,7 @@ interface NewDataProps {
 export class VideoTrackBuffer {
   private videoChunksGroups: VideoChunksGroup[] = [];
   private codecConfig: VideoDecoderConfig;
-  private range = {
-    maxEnd: 0,
-    start: 0,
-    end: 0,
-  };
+  private range: VideoRange;
 
   private effects: VideoEffects;
   public id = generateId();
@@ -57,6 +60,12 @@ export class VideoTrackBuffer {
       this.populateChunkGroups(samples);
       this.codecConfig = videoDecoderConfig;
 
+      this.range = {
+        start: 0,
+        end: 0,
+        maxEnd: 0,
+      };
+
       if (this.videoChunksGroups.length > 0) {
         const duration =
           this.videoChunksGroups[this.videoChunksGroups.length - 1].end /
@@ -71,8 +80,26 @@ export class VideoTrackBuffer {
     return new VideoTrackBuffer(this);
   }
 
-  getVideoChunksDependencies = (time: number) => {
-    const timeInMicros = Math.floor(time * 1e6);
+  splitAt(timeInS: number): [VideoTrackBuffer, VideoTrackBuffer] {
+    const relativeTime = timeInS + this.range.start;
+
+    const leftCopy = this.copy();
+    const rightCopy = this.copy();
+
+    leftCopy.updateRange({
+      end: relativeTime,
+    });
+
+    rightCopy.updateRange({
+      start: relativeTime,
+    });
+
+    return [leftCopy, rightCopy];
+  }
+
+  getVideoChunksDependencies = (timeInS: number) => {
+    const timeInMicros = Math.floor((this.range.start + timeInS) * 1e6);
+    if (timeInMicros > this.range.end * 1e6) return null;
 
     const containingGroup = this.videoChunksGroups.find((group) => {
       return group.start <= timeInMicros && timeInMicros <= group.end;
@@ -104,21 +131,27 @@ export class VideoTrackBuffer {
     const containingGroup = this.videoChunksGroups[containingGroupIndex];
     const chunkIndex = containingGroup.videoChunks.indexOf(videoChunk);
 
+    let nextVideoChunks: EncodedVideoChunk[] = [];
+
     if (chunkIndex === containingGroup.videoChunks.length - 1) {
       // it means that we need to take next video chunks from next videoChunkGroup
       if (containingGroupIndex + 1 < this.videoChunksGroups.length) {
         const nextContainingGroup =
           this.videoChunksGroups[containingGroupIndex + 1];
 
-        return nextContainingGroup.videoChunks.slice(0, maxAmount);
+        nextVideoChunks = nextContainingGroup.videoChunks.slice(0, maxAmount);
       }
     } else {
       const nextVideoChunkIndex = chunkIndex + 1;
-      return containingGroup.videoChunks.slice(
+      nextVideoChunks = containingGroup.videoChunks.slice(
         nextVideoChunkIndex,
         nextVideoChunkIndex + maxAmount,
       );
     }
+
+    return nextVideoChunks.filter((chunk) => {
+      return chunk.timestamp + chunk.duration! < this.range.end * 1e6;
+    });
   };
 
   getCodecConfig = () => {
@@ -135,6 +168,10 @@ export class VideoTrackBuffer {
 
   getRange = () => {
     return this.range;
+  };
+
+  updateRange = (rangeChanges: Partial<VideoRange>) => {
+    this.range = { ...this.range, ...rangeChanges };
   };
 
   getEffects = () => {

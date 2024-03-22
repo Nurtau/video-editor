@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 
-import { TIMELINE_PADDING_INLINE } from "~/constants";
+import { TIMELINE_PADDING } from "~/constants";
 import { eventsBus } from "~/lib/EventsBus";
 
 import { thumbBoxStyles, draggerStyles, lineStyles } from "./SliderThumb.css";
@@ -25,7 +25,7 @@ export const SliderThumb = ({ timeToPx }: SliderThumbProps) => {
     const updateThumbPosition = (time: number) => {
       currentTimeRef.current = time;
       thumbBox.style.left = `${
-        time * timeToPxRef.current + TIMELINE_PADDING_INLINE
+        time * timeToPxRef.current + TIMELINE_PADDING.LEFT
       }px`;
     };
 
@@ -42,7 +42,7 @@ export const SliderThumb = ({ timeToPx }: SliderThumbProps) => {
     }
 
     thumbBox.style.left = `${
-      currentTimeRef.current * timeToPx + TIMELINE_PADDING_INLINE
+      currentTimeRef.current * timeToPx + TIMELINE_PADDING.LEFT
     }px`;
   }, [timeToPx]);
 

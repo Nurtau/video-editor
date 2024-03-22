@@ -63,18 +63,35 @@ export class VideoController {
   }
 
   setVideoTrackBuffers = (videoTrackBuffers: VideoTrackBuffer[]) => {
-    this.videoTrackBuffers = videoTrackBuffers;
+    const nextBufferIds = new Set(videoTrackBuffers.map((track) => track.id));
+    let bufferWasDeleted = false;
 
-    if (this.videoTrackBuffers.length > 0) {
-      this.seek(this.currentTimeInS);
+    this.videoTrackBuffers.forEach((buffer) => {
+      if (!nextBufferIds.has(buffer.id)) {
+        bufferWasDeleted = true;
+      }
+    });
+
+    if (bufferWasDeleted) {
+      this.resetVideo();
+      this.renderer.clear();
     }
 
+    this.videoTrackBuffers = videoTrackBuffers;
     const totalDuration = this.videoTrackBuffers.reduce(
       (cur, trackBuffer) => cur + trackBuffer.getDuration(),
       0,
     );
+
     this.totalDurationInS = totalDuration;
     eventsBus.dispatch("totalDuration", totalDuration);
+
+    if (this.videoTrackBuffers.length > 0) {
+      this.seek(this.currentTimeInS);
+    } else {
+      this.currentTimeInS = 0;
+      eventsBus.dispatch("currentTime", this.currentTimeInS);
+    }
   };
 
   setCanvasBox = (canvasBox: HTMLDivElement) => {
@@ -118,6 +135,7 @@ export class VideoController {
       this.resetVideo();
     }
 
+    this.activeVideoTrack = null;
     this.resetScheduleRenderId();
     this.lastRenderedVideoFrameTs = null;
 
@@ -191,6 +209,7 @@ export class VideoController {
         videoChunksDependencies,
         codecConfig,
         prefixTimestamp,
+        this.activeVideoTrack.buffer.getRange().start,
       );
 
       const nextVideoChunks = trackBuffer.getNextVideoChunks(
@@ -224,7 +243,13 @@ export class VideoController {
         return;
       }
 
-      this.decodeVideoChunks(nextVideoChunks, codecConfig, prefixTimestamp);
+      this.decodeVideoChunks(
+        nextVideoChunks,
+        codecConfig,
+        prefixTimestamp,
+
+        this.activeVideoTrack.buffer.getRange().start,
+      );
     }
   }
 
@@ -232,10 +257,11 @@ export class VideoController {
     videoChunks: EncodedVideoChunk[],
     codecConfig: VideoDecoderConfig,
     prefixTimestamp: number,
+    trackRangeStart: number,
   ) {
     videoChunks.forEach((chunk) => {
       const newChunk = VideoHelpers.recreateVideoChunk(chunk, {
-        timestamp: chunk.timestamp + prefixTimestamp * 1e6,
+        timestamp: chunk.timestamp + (prefixTimestamp - trackRangeStart) * 1e6,
       });
 
       this.frameDecoder.decode(newChunk, codecConfig);
@@ -318,12 +344,13 @@ export class VideoController {
     this.resetScheduleRenderId();
 
     const currentTimeInMicros = Math.floor(1e6 * this.currentTimeInS);
-    const frameIndexesToRemove = new Set<number>();
 
-    this.frameQueue.forEach((frame, index) => {
+    this.frameQueue = this.frameQueue.filter((frame) => {
       if (frame.timestamp + frame.duration! < currentTimeInMicros) {
-        frameIndexesToRemove.add(index);
+        frame.close();
+        return false;
       }
+      return true;
     });
 
     const currentFrameIndex = this.frameQueue.findIndex((frame) => {
@@ -348,15 +375,6 @@ export class VideoController {
         this.lastRenderedVideoFrameTs = currentFrame.timestamp;
       }
     }
-
-    // @NOW: can move it up
-    this.frameQueue = this.frameQueue.filter((frame, index) => {
-      if (frameIndexesToRemove.has(index)) {
-        frame.close();
-        return false;
-      }
-      return true;
-    });
   }
 
   private resetVideo() {

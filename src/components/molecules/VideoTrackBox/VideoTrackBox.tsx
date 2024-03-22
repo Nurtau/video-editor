@@ -1,13 +1,28 @@
-import { useState, useRef, useEffect } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  type CSSProperties,
+  type MouseEvent,
+} from "react";
 
 import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
 import { VideoTrackController } from "~/lib/VideoTrackController";
+import { SliderControlType } from "~/types";
+import { eventsBus } from "~/lib/EventsBus";
 
 import { useActiveTrack } from "../ActiveTrackProvider";
 import { Z_INDEXES } from "~/constants";
 import { OverlayButton } from "~/components/atoms";
 
-import { trackBoxStyles, frameBoxStyles } from "./VideoTrackBox.css";
+import {
+  trackBoxStyles,
+  frameBoxStyles,
+  trimMovingThumbBoxStyles,
+  trimMovingThumbStyles,
+} from "./VideoTrackBox.css";
+import scissorsUrl from "./icons/scissors.svg";
+import trashUrl from "./icons/trash.svg";
 
 const PREVIEW_HEIGHT = 50;
 const PREVIEW_DIMENSIONS = {
@@ -19,13 +34,15 @@ const findPreviewFrames = (
   videoFrames: VideoFrame[],
   timeToPx: number,
   trackBoxWidth: number,
+  rangeStart: number,
 ) => {
   const previewsNum = Math.ceil(trackBoxWidth / PREVIEW_DIMENSIONS.WIDTH);
   const previewFrames: VideoFrame[] = [];
 
   for (let i = 0; i < previewsNum; i++) {
     const previewPosition = (i + 0.5) * PREVIEW_DIMENSIONS.WIDTH;
-    const middleTimeInMicros = Math.floor((1e6 * previewPosition) / timeToPx);
+    const middleTimeInMicros =
+      rangeStart * 1e6 + Math.floor((previewPosition * 1e6) / timeToPx);
 
     let appropriateFrame: VideoFrame | null = null;
     let delta: number | null = null;
@@ -47,12 +64,23 @@ const findPreviewFrames = (
   return previewFrames;
 };
 
+const CONTROL_CURSOR: Record<SliderControlType, CSSProperties["cursor"]> = {
+  default: "pointer",
+  trim: `url("${scissorsUrl}"), col-resize`,
+  delete: `url("${trashUrl}"), not-allowed`,
+};
+
 interface VideoTrackBoxProps {
   timeToPx: number;
   buffer: VideoTrackBuffer;
+  controlType: SliderControlType;
 }
 
-export const VideoTrackBox = ({ timeToPx, buffer }: VideoTrackBoxProps) => {
+export const VideoTrackBox = ({
+  timeToPx,
+  buffer,
+  controlType,
+}: VideoTrackBoxProps) => {
   const [{ videoFrames, duration }, setVideoTrackState] = useState(
     VideoTrackController.getDefaultState(),
   );
@@ -64,14 +92,28 @@ export const VideoTrackBox = ({ timeToPx, buffer }: VideoTrackBoxProps) => {
 
   useEffect(() => {
     trackPreviewer.setVideoTrackBuffer(buffer);
-  }, [buffer]);
+  }, [buffer.id]);
 
   if (!videoFrames) {
     return null;
   }
 
   const trackBoxWidth = duration * timeToPx;
-  const previewFrames = findPreviewFrames(videoFrames, timeToPx, trackBoxWidth);
+  const rangeStart = buffer.getRange().start;
+  const previewFrames = findPreviewFrames(
+    videoFrames,
+    timeToPx,
+    trackBoxWidth,
+    rangeStart,
+  );
+
+  const selectOrDelete = () => {
+    if (controlType === "default") {
+      setActiveTrack(buffer);
+    } else if (controlType === "delete") {
+      eventsBus.dispatch("deletedVideoTrackId", buffer.id);
+    }
+  };
 
   return (
     <div
@@ -80,11 +122,17 @@ export const VideoTrackBox = ({ timeToPx, buffer }: VideoTrackBoxProps) => {
       })}
       style={{ width: trackBoxWidth }}
     >
-      <OverlayButton
-        onClick={() => setActiveTrack(buffer)}
-        bgHoverColor="white10"
-        zIndex={Z_INDEXES.TIMELINE_TRACK}
-      />
+      {controlType === "trim" && (
+        <TrimHandler trackId={buffer.id} timeToPx={timeToPx} />
+      )}
+      {controlType !== "trim" && (
+        <OverlayButton
+          onClick={selectOrDelete}
+          bgHoverColor="white10"
+          zIndex={Z_INDEXES.TIMELINE_TRACK}
+          cursor={CONTROL_CURSOR[controlType]}
+        />
+      )}
       {previewFrames.map((frame, index) => (
         <PrewiewBox frame={frame} key={index} />
       ))}
@@ -127,6 +175,63 @@ const PrewiewBox = ({ frame }: PreviewBoxProps) => {
       }}
     >
       <canvas ref={canvasRef} />
+    </div>
+  );
+};
+
+const extractPosition = (event: MouseEvent) => {
+  const rect = event.currentTarget.getBoundingClientRect();
+  return event.clientX - rect.left;
+};
+
+interface TrimHandlerProps {
+  timeToPx: number;
+  trackId: number;
+}
+
+const TrimHandler = ({ timeToPx, trackId }: TrimHandlerProps) => {
+  const thumbRef = useRef<HTMLDivElement | null>(null);
+
+  const updateThumbPositioning = (event: MouseEvent) => {
+    if (!thumbRef.current) return;
+
+    const position = extractPosition(event);
+    thumbRef.current.style.left = `${position}px`;
+  };
+
+  const onMouseEnter = (event: MouseEvent) => {
+    if (!thumbRef.current) return;
+    thumbRef.current.style.display = "block";
+    updateThumbPositioning(event);
+  };
+
+  const onMouseLeave = (event: MouseEvent) => {
+    if (!thumbRef.current) return;
+    thumbRef.current.style.display = "none";
+    updateThumbPositioning(event);
+  };
+
+  const onClick = (event: MouseEvent) => {
+    const position = extractPosition(event);
+    const time = position / timeToPx;
+    eventsBus.dispatch("splittedVideoTrack", {
+      id: trackId,
+      atTime: time,
+    });
+  };
+
+  return (
+    <div
+      className={trimMovingThumbBoxStyles}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onMouseMove={updateThumbPositioning}
+      onClick={onClick}
+      style={{
+        cursor: CONTROL_CURSOR["trim"],
+      }}
+    >
+      <div ref={thumbRef} className={trimMovingThumbStyles} />
     </div>
   );
 };

@@ -45,6 +45,14 @@ export class VideoRenderer {
     this.ctx.drawImage(frame, 0, 0);
   };
 
+  clear = () => {
+    if (!this.ctx || !this.canvas) {
+      throw new Error("canvas must be specified");
+    }
+
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  };
+
   private observeBoxWidth = (cb: () => void) => {
     window.addEventListener("resize", cb);
     this.unwatch.push(() => window.removeEventListener("resize", cb));

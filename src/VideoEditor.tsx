@@ -36,7 +36,7 @@ export const VideoEditor = () => {
 
   const [activeSidebarKey, setActiveSidebarKey] =
     useState<SidebarKey>("videos-upload");
-  const { activeTrack } = useActiveTrack();
+  const { activeTrack, setActiveTrack } = useActiveTrack();
 
   useEffect(() => {
     if (!activeTrack) return;
@@ -44,9 +44,43 @@ export const VideoEditor = () => {
   }, [activeTrack]);
 
   useEffect(() => {
+    if (!activeTrack) return;
+
+    if (!videoTrackBuffers.includes(activeTrack)) {
+      setActiveTrack(null);
+    }
+  }, [activeTrack, videoTrackBuffers]);
+
+  useEffect(() => {
     // @TODO: there is a room for optimisation, because modifiedVideoTrackId returns a changed track
     return eventsBus.subscribe("modifiedVideoTrackId", () => {
       setVideoTrackBuffers((cur) => [...cur]);
+    });
+  }, []);
+
+  useEffect(() => {
+    return eventsBus.subscribe("deletedVideoTrackId", (id) => {
+      setVideoTrackBuffers((curTracks) =>
+        curTracks.filter((track) => track.id !== id),
+      );
+    });
+  }, []);
+
+  useEffect(() => {
+    return eventsBus.subscribe("splittedVideoTrack", ({ id, atTime }) => {
+      setVideoTrackBuffers((curTracks) => {
+        const nextTracks: VideoTrackBuffer[] = [];
+
+        curTracks.forEach((track) => {
+          if (track.id === id) {
+            nextTracks.push(...track.splitAt(atTime));
+          } else {
+            nextTracks.push(track);
+          }
+        });
+
+        return nextTracks;
+      });
     });
   }, []);
 
