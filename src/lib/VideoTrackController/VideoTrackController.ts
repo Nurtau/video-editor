@@ -31,10 +31,16 @@ export class VideoTrackController {
   setVideoTrackBuffer = async (videoTrackBuffer: VideoTrackBuffer) => {
     this.trackDecoder.reset();
 
+    const range = videoTrackBuffer.getRange();
+
+    // @NOW: add code so at least one closest key frame will be added to videoKeyFrames
     const videoChunkGroups = videoTrackBuffer.getVideoChunksGroups();
-    const videoKeyFrames = videoChunkGroups.map(
-      (group) => group.videoChunks[0],
-    );
+    const videoKeyFrames = videoChunkGroups
+      .map((group) => group.videoChunks[0])
+      .filter((chunk) => {
+        const timestampInS = chunk.timestamp / 1e6;
+        return range.start <= timestampInS && timestampInS <= range.end;
+      });
 
     let shortenedKeyFrames;
 

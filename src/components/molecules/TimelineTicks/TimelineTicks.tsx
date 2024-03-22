@@ -7,7 +7,7 @@ import {
   Fragment,
 } from "react";
 
-import { TIMELINE_PADDING_INLINE } from "~/constants";
+import { TIMELINE_PADDING } from "~/constants";
 import { eventsBus } from "~/lib/EventsBus";
 import { VideoHelpers } from "~/lib/VideoHelpers";
 import {
@@ -67,7 +67,7 @@ export const TimelineTicks = ({ timeToPx }: TimelineTicksProps) => {
 
     const updateMinDuration = () => {
       const width =
-        boxNode.offsetWidth - TIMELINE_PADDING_INLINE - LABEL_WIDTH / 2;
+        boxNode.offsetWidth - TIMELINE_PADDING.LEFT - LABEL_WIDTH / 2;
       setMinDuration(width / timeToPx);
     };
 

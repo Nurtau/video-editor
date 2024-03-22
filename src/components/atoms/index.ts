@@ -6,3 +6,4 @@ export * from "./Button";
 export * from "./useFileReader"; 
 export * from "./OverlayButton";
 export * from "./Slider";
+export * from "./Icon";

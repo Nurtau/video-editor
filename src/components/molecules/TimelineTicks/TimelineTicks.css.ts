@@ -1,11 +1,11 @@
 import { style } from "@vanilla-extract/css";
-import { TIMELINE_PADDING_INLINE } from "~/constants";
+import { TIMELINE_PADDING } from "~/constants";
 import { tokens } from "~/ui-tokens";
 
 export const ticksBoxStyles = style({
   position: "relative",
   height: "100%",
-  marginLeft: TIMELINE_PADDING_INLINE,
+  marginLeft: TIMELINE_PADDING.LEFT,
 });
 
 export const tickBoxStyles = style({
