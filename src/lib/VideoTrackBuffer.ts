@@ -131,27 +131,35 @@ export class VideoTrackBuffer {
     const containingGroup = this.videoChunksGroups[containingGroupIndex];
     const chunkIndex = containingGroup.videoChunks.indexOf(videoChunk);
 
-    let nextVideoChunks: EncodedVideoChunk[] = [];
-
     if (chunkIndex === containingGroup.videoChunks.length - 1) {
       // it means that we need to take next video chunks from next videoChunkGroup
       if (containingGroupIndex + 1 < this.videoChunksGroups.length) {
         const nextContainingGroup =
           this.videoChunksGroups[containingGroupIndex + 1];
 
-        nextVideoChunks = nextContainingGroup.videoChunks.slice(0, maxAmount);
+        if (!this.groupIncludesChunkWithinRange(nextContainingGroup, 0)) {
+          return null;
+        }
+
+        return nextContainingGroup.videoChunks.slice(0, maxAmount);
       }
     } else {
       const nextVideoChunkIndex = chunkIndex + 1;
-      nextVideoChunks = containingGroup.videoChunks.slice(
+
+      if (
+        !this.groupIncludesChunkWithinRange(
+          containingGroup,
+          nextVideoChunkIndex,
+        )
+      ) {
+        return null;
+      }
+
+      return containingGroup.videoChunks.slice(
         nextVideoChunkIndex,
         nextVideoChunkIndex + maxAmount,
       );
     }
-
-    return nextVideoChunks.filter((chunk) => {
-      return chunk.timestamp + chunk.duration! < this.range.end * 1e6;
-    });
   };
 
   getCodecConfig = () => {
@@ -186,6 +194,21 @@ export class VideoTrackBuffer {
     this.effects = VideoTrackBuffer.getDefaultEffects();
   };
 
+  private groupIncludesChunkWithinRange(
+    group: VideoChunksGroup,
+    startIndex: number,
+  ) {
+    let includes = false;
+
+    group.videoChunks.slice(startIndex).forEach((chunk) => {
+      if (chunk.timestamp < this.range.end * 1e6) {
+        includes = true;
+      }
+    });
+
+    return includes;
+  }
+
   private populateChunkGroups(samples: MP4Sample[]) {
     let currentFramesGroup: VideoChunksGroup | null = null;
 
@@ -196,9 +219,7 @@ export class VideoTrackBuffer {
       let timestamp = (sample.cts * 1_000_000) / sample.timescale;
       const duration = (sample.duration * 1_000_000) / sample.timescale;
 
-      // @TODO: first frame does not start at 0: this is quick workaround
-      // learn more about it and find if there is a better solution
-
+      // First frame does not start at 0: this is quick workaround
       if (isFirst) {
         shifted = timestamp;
         isFirst = false;

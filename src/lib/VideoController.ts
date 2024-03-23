@@ -74,7 +74,6 @@ export class VideoController {
 
     if (bufferWasDeleted) {
       this.resetVideo();
-      this.renderer.clear();
     }
 
     this.videoTrackBuffers = videoTrackBuffers;
@@ -89,6 +88,7 @@ export class VideoController {
     if (this.videoTrackBuffers.length > 0) {
       this.seek(this.currentTimeInS);
     } else {
+      this.renderer.clear();
       this.currentTimeInS = 0;
       eventsBus.dispatch("currentTime", this.currentTimeInS);
     }
@@ -194,6 +194,7 @@ export class VideoController {
     const trackBuffer = this.activeVideoTrack.buffer;
     const prefixTimestamp = this.activeVideoTrack.prefixTs;
     const codecConfig = trackBuffer.getCodecConfig();
+    const range = trackBuffer.getRange();
 
     if (this.furthestDecodingVideoChunk === null) {
       // it can be negative when we are decoding frames of next track
@@ -209,7 +210,8 @@ export class VideoController {
         videoChunksDependencies,
         codecConfig,
         prefixTimestamp,
-        this.activeVideoTrack.buffer.getRange().start,
+        range.start,
+        range.end,
       );
 
       const nextVideoChunks = trackBuffer.getNextVideoChunks(
@@ -247,8 +249,8 @@ export class VideoController {
         nextVideoChunks,
         codecConfig,
         prefixTimestamp,
-
-        this.activeVideoTrack.buffer.getRange().start,
+        range.start,
+        range.end,
       );
     }
   }
@@ -258,10 +260,21 @@ export class VideoController {
     codecConfig: VideoDecoderConfig,
     prefixTimestamp: number,
     trackRangeStart: number,
+    trackRangeEnd: number,
   ) {
     videoChunks.forEach((chunk) => {
+      let timestamp;
+
+      if (chunk.timestamp < trackRangeEnd * 1e6) {
+        timestamp = chunk.timestamp + (prefixTimestamp - trackRangeStart) * 1e6;
+      } else {
+        // this chunk is used to decode other chunks with timestamp within range
+        // therefore we need to instantly close decoded frame
+        timestamp = -1;
+      }
+
       const newChunk = VideoHelpers.recreateVideoChunk(chunk, {
-        timestamp: chunk.timestamp + (prefixTimestamp - trackRangeStart) * 1e6,
+        timestamp,
       });
 
       this.frameDecoder.decode(newChunk, codecConfig);
@@ -361,7 +374,7 @@ export class VideoController {
       const currentFrame = this.frameQueue[currentFrameIndex];
 
       if (this.lastRenderedVideoFrameTs !== currentFrame.timestamp) {
-        const timestampInS = currentFrame.timestamp / 1e6;
+        const timestampInS = Math.max(0, currentFrame.timestamp / 1e6);
         const videoTrack = this.getActiveVideoTrackAt(timestampInS);
 
         if (!videoTrack) return;
