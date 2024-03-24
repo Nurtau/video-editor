@@ -48,13 +48,13 @@ export class VideoTrackBuffer {
   }
 
   constructor(props: NewDataProps | VideoTrackBuffer) {
-    this.effects = VideoTrackBuffer.getDefaultEffects();
-
     if (props instanceof VideoTrackBuffer) {
+      this.effects = props.getEffects();
       this.videoChunksGroups = props.getVideoChunksGroups();
       this.codecConfig = props.getCodecConfig();
       this.range = props.getRange();
     } else {
+      this.effects = VideoTrackBuffer.getDefaultEffects();
       const { samples, videoDecoderConfig } = props;
 
       this.populateChunkGroups(samples);
