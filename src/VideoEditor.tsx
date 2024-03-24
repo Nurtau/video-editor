@@ -8,6 +8,7 @@ import { Layout, PlayerCanvas, Sidebar } from "./components/atoms";
 import {
   VideoUploadSection,
   VideoEffectsSection,
+  VideoExportSection,
   PlayerTimeline,
 } from "./components/organisms";
 import { PlayerControls, useActiveTrack } from "./components/molecules";
@@ -130,9 +131,11 @@ export const VideoEditor = () => {
               content: () => <VideoEffectsSection />,
             },
             {
-              icon: "Merge",
+              icon: "Export",
               key: "video-export",
-              content: () => <div>VIDEO-export</div>,
+              content: () => (
+                <VideoExportSection videoTrackBuffers={videoTrackBuffers} />
+              ),
             },
           ]}
         />

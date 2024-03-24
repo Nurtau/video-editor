@@ -3,7 +3,6 @@ import { VideoRenderer } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { VideoHelpers } from "./VideoHelpers";
 import { eventsBus } from "./EventsBus";
-import { VideoExporter } from "./VideoExporter";
 import { VideoFrameChanger } from "./VideoFrameChanger";
 
 const MAX_CAPACITY = 25;
@@ -41,7 +40,6 @@ export class VideoController {
     buffer: VideoTrackBuffer;
   } | null = null;
 
-  private exporter: VideoExporter;
   private frameChanger: VideoFrameChanger;
 
   static buildDefaultState(): VideoControllerState {
@@ -57,9 +55,6 @@ export class VideoController {
     });
     this.renderer = new VideoRenderer();
     this.frameChanger = new VideoFrameChanger();
-    this.exporter = new VideoExporter({
-      processFrame: this.frameChanger.processFrame,
-    });
   }
 
   setVideoTrackBuffers = (videoTrackBuffers: VideoTrackBuffer[]) => {
@@ -96,10 +91,6 @@ export class VideoController {
 
   setCanvasBox = (canvasBox: HTMLDivElement) => {
     this.renderer.setCanvasBox(canvasBox);
-  };
-
-  exportVideo = async () => {
-    this.exporter.exportVideo(this.videoTrackBuffers);
   };
 
   play = () => {
@@ -265,7 +256,10 @@ export class VideoController {
     videoChunks.forEach((chunk) => {
       let timestamp;
 
-      if (chunk.timestamp < trackRangeEnd * 1e6) {
+      if (
+        chunk.timestamp >= trackRangeStart * 1e6 &&
+        chunk.timestamp < trackRangeEnd * 1e6
+      ) {
         timestamp = chunk.timestamp + (prefixTimestamp - trackRangeStart) * 1e6;
       } else {
         // this chunk is used to decode other chunks with timestamp within range
