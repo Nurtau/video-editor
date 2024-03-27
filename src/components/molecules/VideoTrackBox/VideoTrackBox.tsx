@@ -92,6 +92,7 @@ export const VideoTrackBox = ({
 
   useEffect(() => {
     trackPreviewer.setVideoTrackBuffer(buffer);
+    return trackPreviewer.reset;
   }, [buffer.id]);
 
   const trackBoxWidth = buffer.getDuration() * timeToPx;

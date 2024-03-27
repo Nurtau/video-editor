@@ -14,6 +14,7 @@ interface VideoTrackControllerProps {
 export class VideoTrackController {
   private onEmit: VideoTrackControllerProps["onEmit"];
   private trackDecoder: VideoTrackDecoder;
+  private videoFrames: VideoFrame[] = [];
 
   static getDefaultState(): VideoTrackControllerState {
     return {
@@ -27,7 +28,7 @@ export class VideoTrackController {
   }
 
   setVideoTrackBuffer = async (videoTrackBuffer: VideoTrackBuffer) => {
-    this.trackDecoder.reset();
+    this.reset();
 
     const range = videoTrackBuffer.getRange();
 
@@ -94,8 +95,16 @@ export class VideoTrackController {
       videoFrames.push(...decodedFrames);
     }
 
+    this.videoFrames = videoFrames;
+
     this.onEmit({
       videoFrames,
     });
+  };
+
+  reset = () => {
+    this.trackDecoder.reset();
+    this.videoFrames.forEach((frame) => frame.close());
+    this.videoFrames = [];
   };
 }
