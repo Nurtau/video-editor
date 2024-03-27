@@ -5,7 +5,6 @@ const MAX_TRACK_FRAMES = 20;
 
 interface VideoTrackControllerState {
   videoFrames: VideoFrame[] | null;
-  duration: number;
 }
 
 interface VideoTrackControllerProps {
@@ -19,7 +18,6 @@ export class VideoTrackController {
   static getDefaultState(): VideoTrackControllerState {
     return {
       videoFrames: null,
-      duration: 0,
     };
   }
 
@@ -98,7 +96,6 @@ export class VideoTrackController {
 
     this.onEmit({
       videoFrames,
-      duration: videoTrackBuffer.getDuration(),
     });
   };
 }

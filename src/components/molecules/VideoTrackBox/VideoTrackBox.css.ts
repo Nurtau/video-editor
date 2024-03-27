@@ -11,6 +11,7 @@ export const trackBoxStyles = recipe({
     overflow: "hidden",
     position: "relative",
     borderRadius: tokens.borderRadiuses["2"],
+    backgroundColor: "black",
   },
   variants: {
     active: {

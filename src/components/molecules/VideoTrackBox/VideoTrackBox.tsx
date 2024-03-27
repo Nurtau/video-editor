@@ -81,7 +81,7 @@ export const VideoTrackBox = ({
   buffer,
   controlType,
 }: VideoTrackBoxProps) => {
-  const [{ videoFrames, duration }, setVideoTrackState] = useState(
+  const [{ videoFrames }, setVideoTrackState] = useState(
     VideoTrackController.getDefaultState(),
   );
   const [trackPreviewer] = useState(
@@ -94,18 +94,11 @@ export const VideoTrackBox = ({
     trackPreviewer.setVideoTrackBuffer(buffer);
   }, [buffer.id]);
 
-  if (!videoFrames) {
-    return null;
-  }
-
-  const trackBoxWidth = duration * timeToPx;
+  const trackBoxWidth = buffer.getDuration() * timeToPx;
   const rangeStart = buffer.getRange().start;
-  const previewFrames = findPreviewFrames(
-    videoFrames,
-    timeToPx,
-    trackBoxWidth,
-    rangeStart,
-  );
+  const previewFrames = videoFrames
+    ? findPreviewFrames(videoFrames, timeToPx, trackBoxWidth, rangeStart)
+    : [];
 
   const selectOrDelete = () => {
     if (controlType === "default") {
@@ -120,7 +113,7 @@ export const VideoTrackBox = ({
       className={trackBoxStyles({
         active: buffer.id === activeTrack?.id,
       })}
-      style={{ width: trackBoxWidth }}
+      style={{ width: trackBoxWidth, height: PREVIEW_DIMENSIONS.HEIGHT }}
     >
       {controlType === "trim" && (
         <TrimHandler trackId={buffer.id} timeToPx={timeToPx} />
