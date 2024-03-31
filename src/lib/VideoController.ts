@@ -1,6 +1,9 @@
 import { VideoFrameDecoder } from "./VideoFrameDecoder";
 import { VideoRenderer, type VideoRendererRawSize } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
+import { AudioTrackBuffer } from "./AudioTrackBuffer";
+import { AudioDataDecoder } from "./AudioDataDecoder";
+import { AudioRenderer } from "./AudioRenderer";
 import { VideoHelpers } from "./VideoHelpers";
 import { eventsBus } from "./EventsBus";
 import { VideoFrameChanger } from "./VideoFrameChanger";
@@ -15,14 +18,25 @@ interface VideoControllerProps {
   onEmit(state: Partial<VideoControllerState>): void;
 }
 
+// Low and high watermark for decode queue
+// If the queue drops below the LWM, we try to fill it with up to HWM new frames
+const decodeQueueLwm = 20;
+const decodeQueueHwm = 30;
+
 export class VideoController {
   private onEmit: VideoControllerProps["onEmit"];
   private frameDecoder: VideoFrameDecoder;
-  private renderer: VideoRenderer;
+  private audioDataDecoder: AudioDataDecoder;
+  private videoRenderer: VideoRenderer;
+  private audioRenderer: AudioRenderer;
 
   private frameQueue: VideoFrame[] = [];
-  private decodingChunks: EncodedVideoChunk[] = [];
+  private decodingVideoChunks: EncodedVideoChunk[] = [];
   private videoTrackBuffers: VideoTrackBuffer[] = [];
+  private audioTrackBuffers: AudioTrackBuffer[] = [];
+  private audioDataQueue: AudioData[] = [];
+  private decodingAudioChunks: EncodedAudioChunk[] = [];
+  private lastScheduledAudioFrameTime: number = -1;
 
   private playing = false;
   private currentTimeInS = 0;
@@ -34,6 +48,8 @@ export class VideoController {
 
   private furthestDecodingVideoChunk: EncodedVideoChunk | null = null;
   private lastRenderedVideoFrameTs: number | null = null;
+
+  private furthestDecodingAudioChunk: EncodedAudioChunk | undefined = undefined;
 
   private activeVideoTrack: {
     prefixTs: number;
@@ -53,7 +69,11 @@ export class VideoController {
     this.frameDecoder = new VideoFrameDecoder({
       onDecode: this.onDecodedVideoFrame,
     });
-    this.renderer = new VideoRenderer();
+    this.audioDataDecoder = new AudioDataDecoder({
+      onDecode: this.onDecodedAudioData,
+    });
+    this.videoRenderer = new VideoRenderer();
+    this.audioRenderer = new AudioRenderer();
     this.frameChanger = new VideoFrameChanger();
   }
 
@@ -83,14 +103,22 @@ export class VideoController {
     if (this.videoTrackBuffers.length > 0) {
       this.seek(this.currentTimeInS);
     } else {
-      this.renderer.clear();
+      this.videoRenderer.clear();
       this.currentTimeInS = 0;
       eventsBus.dispatch("currentTime", this.currentTimeInS);
     }
   };
 
+  setAudioTrackBuffers = (audioTrackBuffers: AudioTrackBuffer[]) => {
+    this.audioTrackBuffers = audioTrackBuffers;
+
+    if (this.audioTrackBuffers.length > 0) {
+      this.seek(this.currentTimeInS);
+    }
+  };
+
   setCanvasBox = (canvasBox: HTMLDivElement) => {
-    this.renderer.setCanvasBox(canvasBox);
+    this.videoRenderer.setCanvasBox(canvasBox);
   };
 
   setVideoSize = (size: VideoRendererRawSize) => {
@@ -105,6 +133,7 @@ export class VideoController {
       this.advanceCurrentTime(now),
     );
     this.playing = true;
+    this.audioRenderer.resume();
     this.onEmit({ playing: true });
   };
 
@@ -115,6 +144,7 @@ export class VideoController {
     }
 
     this.playing = false;
+    this.audioRenderer.suspend();
     this.onEmit({ playing: false });
   };
 
@@ -131,6 +161,8 @@ export class VideoController {
     if (!isTimeCloseToCurrent) {
       this.resetVideo();
     }
+
+    this.resetAudio();
 
     this.activeVideoTrack = null;
     this.resetScheduleRenderId();
@@ -169,7 +201,9 @@ export class VideoController {
 
     eventsBus.dispatch("currentTime", this.currentTimeInS);
     this.decodeVideoFrames();
+    this.decodeAudio();
     this.renderVideoFrame();
+    this.renderAudio();
 
     if (reachedEnd) {
       this.pause();
@@ -222,7 +256,7 @@ export class VideoController {
     }
 
     const availableSpace =
-      MAX_CAPACITY - (this.frameQueue.length + this.decodingChunks.length);
+      MAX_CAPACITY - (this.frameQueue.length + this.decodingVideoChunks.length);
 
     if (availableSpace > 0) {
       const nextVideoChunks = trackBuffer.getNextVideoChunks(
@@ -278,7 +312,7 @@ export class VideoController {
       });
 
       this.frameDecoder.decode(newChunk, codecConfig);
-      this.decodingChunks.push(newChunk);
+      this.decodingVideoChunks.push(newChunk);
     });
     this.furthestDecodingVideoChunk = videoChunks[videoChunks.length - 1];
   }
@@ -286,12 +320,12 @@ export class VideoController {
   private onDecodedVideoFrame = (videoFrame: VideoFrame) => {
     const currentTimeInMicros = Math.floor(1e6 * this.currentTimeInS);
 
-    const decodingChunkIndex = this.decodingChunks.findIndex((chunk) =>
+    const decodingChunkIndex = this.decodingVideoChunks.findIndex((chunk) =>
       VideoHelpers.isFrameTimestampEqual(chunk, videoFrame),
     );
 
     if (decodingChunkIndex !== -1) {
-      this.decodingChunks.splice(decodingChunkIndex, 1);
+      this.decodingVideoChunks.splice(decodingChunkIndex, 1);
     }
 
     if (videoFrame.timestamp + videoFrame.duration! < currentTimeInMicros) {
@@ -312,6 +346,179 @@ export class VideoController {
         this.renderVideoFrame(),
       );
     }
+  }
+
+  private onDecodedAudioData = (frame: AudioData) => {
+    console.error(frame);
+    const decodingFrameIndex = this.decodingAudioChunks.findIndex((x) =>
+      VideoHelpers.isFrameTimestampEqual(x, frame),
+    );
+    if (decodingFrameIndex < 0) {
+      // Drop frames that are no longer in the decode queue.
+      frame.close();
+      return;
+    }
+
+    VideoHelpers.arrayRemoveAt(this.decodingAudioChunks, decodingFrameIndex);
+    const currentTimeInMicros = Math.floor(1e6 * this.currentTimeInS);
+
+    if (frame.timestamp + frame.duration! <= currentTimeInMicros) {
+      frame.close();
+      this.decodeAudio();
+      return;
+    }
+
+    this.audioDataQueue.push(frame);
+    this.decodeAudio();
+  };
+
+  private isConsecutiveAudioFrame(
+    previous: AudioData,
+    next: AudioData,
+  ): boolean {
+    let diff: number;
+    diff = next.timestamp - (previous.timestamp + previous.duration);
+    // Due to rounding, there can be a small gap between consecutive audio frames.
+    return Math.abs(diff) <= VideoHelpers.getFrameTolerance(previous);
+  }
+
+  private decodeAudio(): void {
+    //console.log("decodeAudio", this.furthestDecodingAudioChunk);
+    const audioTrackBuffer = this.audioTrackBuffers[0];
+    //console.log(audioTrackBuffer);
+    if (!audioTrackBuffer) {
+      return;
+    }
+    if (
+      this.furthestDecodingAudioChunk !== undefined &&
+      !audioTrackBuffer.hasFrame(this.furthestDecodingAudioChunk)
+    ) {
+      this.furthestDecodingAudioChunk = undefined;
+    }
+    // Decode audio for current time
+    if (this.furthestDecodingAudioChunk === undefined) {
+      const frameAtTime = audioTrackBuffer.getAudioChunksDependencies(
+        this.currentTimeInS,
+      );
+      //console.log(frameAtTime);
+      if (frameAtTime === null) {
+        return;
+      }
+      this.processAudioDecodeQueue(
+        frameAtTime,
+        audioTrackBuffer.getCodecConfig(),
+      );
+    }
+
+    //console.log(this.decodingAudioChunks.length, this.audioDataQueue.length);
+
+    // Decode next frames in advance
+    while (
+      this.decodingAudioChunks.length + this.audioDataQueue.length <
+      decodeQueueLwm
+    ) {
+      const nextQueue = audioTrackBuffer.getNextAudioChunks(
+        this.furthestDecodingAudioChunk!,
+        decodeQueueHwm -
+          (this.decodingAudioChunks.length + this.audioDataQueue.length),
+      );
+      //console.log(nextQueue);
+      if (nextQueue === undefined) {
+        break;
+      }
+      this.processAudioDecodeQueue(
+        nextQueue,
+        audioTrackBuffer.getCodecConfig(),
+      );
+    }
+  }
+
+  private processAudioDecodeQueue(
+    frames: EncodedAudioChunk[],
+    codecConfig: AudioDecoderConfig,
+  ): void {
+    for (const frame of frames) {
+      this.audioDataDecoder.decode(frame, codecConfig);
+      this.decodingAudioChunks.push(frame);
+    }
+
+    this.furthestDecodingAudioChunk = frames[frames.length - 1];
+  }
+
+  private renderAudio() {
+    const currentTimeInMicros = Math.floor(1e6 * this.currentTimeInS);
+
+    // Drop all frames that are before current time, since we're too late to render them.
+    for (let i = this.audioDataQueue.length - 1; i >= 0; i--) {
+      const frame = this.audioDataQueue[i];
+      if (frame.timestamp + frame.duration! < currentTimeInMicros) {
+        frame.close();
+        VideoHelpers.arrayRemoveAt(this.audioDataQueue, i);
+      }
+    }
+    let nextFrameIndex: number = -1;
+    if (this.lastScheduledAudioFrameTime >= 0) {
+      // Render the next frame.
+      nextFrameIndex = this.audioDataQueue.findIndex((frame) => {
+        return frame.timestamp === this.lastScheduledAudioFrameTime;
+      });
+    }
+    //console.log(this.lastScheduledAudioFrameTime);
+    if (nextFrameIndex < 0) {
+      // Render the frame at current time.
+      nextFrameIndex = this.audioDataQueue.findIndex((frame) => {
+        //console.log(frame, this.currentTimeInS);
+        //console.log(this.audioDataQueue[1]);
+        //console.log("__________________");
+        return (
+          frame.timestamp <= currentTimeInMicros &&
+          currentTimeInMicros < frame.timestamp + frame.duration
+        );
+      });
+    }
+
+    console.log("NextFrameIndex:", nextFrameIndex);
+    if (nextFrameIndex < 0) {
+      // Decode more frames (if we now have more space in the queue)
+      this.decodeAudio();
+      return;
+    }
+    // Collect as many consecutive audio frames as possible
+    // to schedule in a single batch.
+    const firstFrame = this.audioDataQueue[nextFrameIndex];
+    const frames: AudioData[] = [firstFrame];
+    for (
+      let frameIndex = nextFrameIndex + 1;
+      frameIndex < this.audioDataQueue.length;
+      frameIndex++
+    ) {
+      const frame = this.audioDataQueue[frameIndex];
+      const previousFrame = frames[frames.length - 1];
+      if (
+        this.isConsecutiveAudioFrame(previousFrame, frame) &&
+        frame.format === firstFrame.format &&
+        frame.numberOfChannels === firstFrame.numberOfChannels &&
+        frame.sampleRate === firstFrame.sampleRate
+      ) {
+        // This frame is consecutive with the previous frame.
+        frames.push(frame);
+      } else {
+        // This frame is not consecutive. We can't schedule this in the same batch.
+        break;
+      }
+    }
+
+    this.audioRenderer.process(frames, currentTimeInMicros);
+    const lastFrame = frames[frames.length - 1];
+    this.lastScheduledAudioFrameTime = lastFrame.timestamp + lastFrame.duration;
+    // Close the frames, so the audio decoder can reclaim them.
+    for (let i = frames.length - 1; i >= 0; i--) {
+      const frame = frames[i];
+      frame.close();
+      VideoHelpers.arrayRemove(this.audioDataQueue, frame);
+    }
+    // Decode more frames (if we now have more space in the queue)
+    this.decodeAudio();
   }
 
   private getActiveVideoTrackAt(timeInS: number) {
@@ -383,7 +590,7 @@ export class VideoController {
           currentFrame,
           videoTrack.buffer.getEffects(),
         );
-        this.renderer.draw(processedFrame);
+        this.videoRenderer.draw(processedFrame);
         processedFrame.close();
         this.lastRenderedVideoFrameTs = currentFrame.timestamp;
       }
@@ -395,10 +602,19 @@ export class VideoController {
     this.frameDecoder.reset();
     this.frameQueue.forEach((frame) => frame.close());
     this.frameQueue = [];
-    this.decodingChunks = [];
+    this.decodingVideoChunks = [];
     this.activeVideoTrack = null;
   }
 
+  private resetAudio() {
+    this.furthestDecodingAudioChunk = undefined;
+    this.audioDataDecoder.reset();
+    this.audioDataQueue.forEach((frame) => frame.close());
+    this.audioDataQueue = [];
+    this.decodingAudioChunks = [];
+    this.lastScheduledAudioFrameTime = -1;
+    this.audioRenderer.reset();
+  }
   private resetScheduleRenderId() {
     if (this.scheduleRenderId !== null) {
       cancelAnimationFrame(this.scheduleRenderId);

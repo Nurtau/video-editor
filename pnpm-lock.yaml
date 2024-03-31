@@ -2,6 +2,7 @@ lockfileVersion: 5.4
 
 specifiers:
   '@svgr/cli': ^8.1.0
+  '@types/dom-webcodecs': ^0.1.11
   '@types/react': ^18.2.15
   '@types/react-dom': ^18.2.7
   '@typescript-eslint/eslint-plugin': ^6.0.0
@@ -37,6 +38,7 @@ dependencies:
 
 devDependencies:
   '@svgr/cli': 8.1.0_typescript@5.2.2
+  '@types/dom-webcodecs': 0.1.11
   '@types/react': 18.2.24
   '@types/react-dom': 18.2.8
   '@typescript-eslint/eslint-plugin': 6.7.3_ptdtxirkj6smbsapfa2xu7c5iq
@@ -1081,6 +1083,10 @@ packages:
   /@trysound/sax/0.2.0:
     resolution: {integrity: sha512-L7z9BgrNEcYyUYtF+HaEfiS5ebkh9jXqbszz7pC0hRBPaatV0XjSD3+eHrpqFemQfgwiFF0QPIarnIihIDn7OA==}
     engines: {node: '>=10.13.0'}
+    dev: true
+
+  /@types/dom-webcodecs/0.1.11:
+    resolution: {integrity: sha512-yPEZ3z7EohrmOxbk/QTAa0yonMFkNkjnVXqbGb7D4rMr+F1dGQ8ZUFxXkyLLJuiICPejZ0AZE9Rrk9wUCczx4A==}
     dev: true
 
   /@types/json-schema/7.0.13:
