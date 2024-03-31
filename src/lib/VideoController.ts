@@ -1,5 +1,5 @@
 import { VideoFrameDecoder } from "./VideoFrameDecoder";
-import { VideoRenderer } from "./VideoRenderer";
+import { VideoRenderer, type VideoRendererRawSize } from "./VideoRenderer";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { VideoHelpers } from "./VideoHelpers";
 import { eventsBus } from "./EventsBus";
@@ -91,6 +91,12 @@ export class VideoController {
 
   setCanvasBox = (canvasBox: HTMLDivElement) => {
     this.renderer.setCanvasBox(canvasBox);
+  };
+
+  setVideoSize = (size: VideoRendererRawSize) => {
+    this.renderer.setSize(size);
+    this.lastRenderedVideoFrameTs = null;
+    this.renderVideoFrame();
   };
 
   play = () => {

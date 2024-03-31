@@ -8,7 +8,6 @@ import { VideoTrackBuffer } from "./VideoTrackBuffer";
  * IN SAFARI: exported video is huge in memory because chunk type is always key
  */
 
-// @TODO: what about asking user about this number?
 const KEYFRAME_INTERVAL_MICROSECONDS = 4 * 1000 * 1000; // 4 seconds
 const TIMESCALE = 90000;
 

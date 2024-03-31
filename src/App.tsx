@@ -1,15 +1,20 @@
 import "./globalStyles.css";
 
 import { ActiveTrackProvider } from "./components/molecules";
-import { VideoBoxesProvider } from "./components/organisms";
+import {
+  VideoBoxesProvider,
+  VideoSettingsProvider,
+} from "./components/organisms";
 import { VideoEditor } from "./VideoEditor";
 
 function App() {
   return (
     <VideoBoxesProvider>
-      <ActiveTrackProvider>
-        <VideoEditor />
-      </ActiveTrackProvider>
+      <VideoSettingsProvider>
+        <ActiveTrackProvider>
+          <VideoEditor />
+        </ActiveTrackProvider>
+      </VideoSettingsProvider>
     </VideoBoxesProvider>
   );
 }

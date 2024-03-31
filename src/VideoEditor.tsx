@@ -9,7 +9,9 @@ import {
   VideoUploadSection,
   VideoEffectsSection,
   VideoExportSection,
+  VideoSettingsSection,
   PlayerTimeline,
+  useVideoSettings,
 } from "./components/organisms";
 import { PlayerControls, useActiveTrack } from "./components/molecules";
 
@@ -20,6 +22,7 @@ type SidebarKey =
   | "video-export";
 
 export const VideoEditor = () => {
+  const { settings } = useVideoSettings();
   const [videoTrackBuffers, setVideoTrackBuffers] = useState<
     VideoTrackBuffer[]
   >([]);
@@ -38,6 +41,10 @@ export const VideoEditor = () => {
   const [activeSidebarKey, setActiveSidebarKey] =
     useState<SidebarKey>("videos-upload");
   const { activeTrack, setActiveTrack } = useActiveTrack();
+
+  useEffect(() => {
+    controller.setVideoSize(settings);
+  }, [settings]);
 
   useEffect(() => {
     if (!activeTrack) return;
@@ -123,7 +130,7 @@ export const VideoEditor = () => {
             {
               icon: "Sliders",
               key: "video-settings",
-              content: () => <div>VIDEO-settings</div>,
+              content: () => <VideoSettingsSection />,
             },
             {
               icon: "PaintBrush",

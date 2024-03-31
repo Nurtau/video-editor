@@ -23,6 +23,7 @@ export const VideoExportSection = ({
         onClick={() => {
           exporterService.exportVideo(videoTrackBuffers);
         }}
+        disabled={videoTrackBuffers.length === 0}
       >
         Export
       </Button>
