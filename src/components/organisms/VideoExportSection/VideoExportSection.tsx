@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "~/components/atoms";
 import { VideoExporter } from "~/lib/VideoExporter";
 import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
+import { useVideoSettings } from "../VideoSettingsSection";
 
 import { sectionBoxStyles, titleStyles } from "./VideoExportSection.css";
 
@@ -13,6 +14,7 @@ interface VideoExportSectionProps {
 export const VideoExportSection = ({
   videoTrackBuffers,
 }: VideoExportSectionProps) => {
+  const { settings } = useVideoSettings();
   const [exporterService] = useState(() => new VideoExporter());
 
   return (
@@ -21,7 +23,8 @@ export const VideoExportSection = ({
       <Button
         variant="secondary"
         onClick={() => {
-          exporterService.exportVideo(videoTrackBuffers);
+          const [width, height] = settings.resolution.split("x").map(Number);
+          exporterService.exportVideo(videoTrackBuffers, { width, height });
         }}
         disabled={videoTrackBuffers.length === 0}
       >

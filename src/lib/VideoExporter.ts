@@ -11,11 +11,21 @@ import { VideoTrackBuffer } from "./VideoTrackBuffer";
 const KEYFRAME_INTERVAL_MICROSECONDS = 4 * 1000 * 1000; // 4 seconds
 const TIMESCALE = 90000;
 
+interface VideoOptions {
+  width: number;
+  height: number;
+}
+
 interface CommonConfig {
   codec: string;
   width: number;
   height: number;
 }
+
+const QUEUE_WINDOW = 20;
+const MIN_QUEUE_THRESHOLD = 5;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // @TODO: show UI progress with percentage maybe
 export class VideoExporter {
@@ -27,6 +37,7 @@ export class VideoExporter {
   private trackId: number | null = null;
   private frameChanger: VideoFrameChanger;
   private videoTrackBuffers: VideoTrackBuffer[] = [];
+  private encodingNums = 0;
 
   constructor() {
     this.frameChanger = new VideoFrameChanger();
@@ -41,16 +52,15 @@ export class VideoExporter {
     });
   }
 
-  exportVideo = async (buffers: VideoTrackBuffer[]) => {
+  exportVideo = async (buffers: VideoTrackBuffer[], options: VideoOptions) => {
     this.reset();
     this.videoTrackBuffers = buffers;
     if (this.videoTrackBuffers.length === 0) return;
 
-    // @NOW: this should be input from user
     const config: CommonConfig = {
       codec: "avc1.4d0034",
-      height: 1080,
-      width: 1920,
+      height: options.height,
+      width: options.width,
     };
     this.commonConfig = config;
 
@@ -75,7 +85,7 @@ export class VideoExporter {
       } else {
         decodingChunks = buffer.getNextVideoChunks(
           furthestDecodingVideoChunk,
-          10,
+          QUEUE_WINDOW,
         );
       }
 
@@ -92,6 +102,7 @@ export class VideoExporter {
             chunk.timestamp < range.end * 1e6
           ) {
             timestamp = chunk.timestamp + (prefixTs - range.start) * 1e6;
+            this.encodingNums += 1;
           } else {
             // this chunk is used to decode other chunks with timestamp within range
             // therefore we need to instantly close decoded frame
@@ -106,7 +117,10 @@ export class VideoExporter {
         });
 
         furthestDecodingVideoChunk = decodingChunks[decodingChunks.length - 1];
-        // @NOW: memory usage optimisation: what about frame/chunk windowing
+
+        while (this.encodingNums >= MIN_QUEUE_THRESHOLD) {
+          await sleep(16);
+        }
       }
     }
 
@@ -154,6 +168,8 @@ export class VideoExporter {
     if (!this.commonConfig) {
       throw new Error("INTERNAL ERROR: commonConfig must be defined");
     }
+
+    this.encodingNums -= 1;
 
     if (this.trackId === null) {
       const description = metadata!.decoderConfig!.description;
