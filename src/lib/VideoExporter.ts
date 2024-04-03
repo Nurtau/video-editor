@@ -27,8 +27,19 @@ const MIN_QUEUE_THRESHOLD = 5;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// @TODO: show UI progress with percentage maybe
+interface VideoExportProgressState {
+  showProgress: boolean;
+  exported: boolean;
+  maxEncodedNums: number;
+  curEncodedNums: number;
+}
+
+interface VideoExporterProps {
+  onEmit(state: Partial<VideoExportProgressState>): void;
+}
+
 export class VideoExporter {
+  private onEmit: VideoExporterProps["onEmit"];
   private decoder: VideoDecoder;
   private encoder: VideoEncoder;
   private commonConfig: CommonConfig | null = null;
@@ -38,8 +49,20 @@ export class VideoExporter {
   private frameChanger: VideoFrameChanger;
   private videoTrackBuffers: VideoTrackBuffer[] = [];
   private encodingNums = 0;
+  private encodedNums = 0;
 
-  constructor() {
+  static getDefaultState(): VideoExportProgressState {
+    // just random numbers for initial state
+    return {
+      showProgress: false,
+      exported: false,
+      curEncodedNums: 0,
+      maxEncodedNums: 100,
+    };
+  }
+
+  constructor({ onEmit }: VideoExporterProps) {
+    this.onEmit = onEmit;
     this.frameChanger = new VideoFrameChanger();
     this.mp4File = createFile();
     this.decoder = new VideoDecoder({
@@ -55,7 +78,17 @@ export class VideoExporter {
   exportVideo = async (buffers: VideoTrackBuffer[], options: VideoOptions) => {
     this.reset();
     this.videoTrackBuffers = buffers;
+
     if (this.videoTrackBuffers.length === 0) return;
+
+    const maxEncodedNums = this.extractEncodingFramesNum(buffers);
+
+    this.onEmit({
+      showProgress: true,
+      exported: false,
+      curEncodedNums: 0,
+      maxEncodedNums,
+    });
 
     const config: CommonConfig = {
       codec: "avc1.4d0034",
@@ -121,12 +154,54 @@ export class VideoExporter {
         while (this.encodingNums >= MIN_QUEUE_THRESHOLD) {
           await sleep(16);
         }
+
+        this.onEmit({
+          curEncodedNums: this.encodedNums,
+        });
       }
     }
 
     await this.decoder.flush();
     await this.encoder.flush();
-    this.mp4File.save("mp4box.mp4");
+
+    this.onEmit({
+      exported: true,
+      curEncodedNums: maxEncodedNums,
+    });
+  };
+
+  download = () => {
+    this.mp4File.save("video.mp4");
+  };
+
+  reset = () => {
+    this.decoder.reset();
+    this.encoder.reset();
+    this.mp4File = createFile();
+    this.trackId = null;
+    this.nextKeyframeTs = 0;
+    this.encodedNums = 0;
+    this.encodingNums = 0;
+  };
+
+  private extractEncodingFramesNum = (buffers: VideoTrackBuffer[]) => {
+    let framesNum = 0;
+
+    buffers.forEach((buffer) => {
+      const range = buffer.getRange();
+      buffer.getVideoChunksGroups().forEach((group) => {
+        group.videoChunks.forEach((chunk) => {
+          if (
+            chunk.timestamp >= range.start * 1e6 &&
+            chunk.timestamp < range.end * 1e6
+          ) {
+            framesNum += 1;
+          }
+        });
+      });
+    });
+
+    return framesNum;
   };
 
   private onDecode = async (frame: VideoFrame) => {
@@ -170,6 +245,7 @@ export class VideoExporter {
     }
 
     this.encodingNums -= 1;
+    this.encodedNums += 1;
 
     if (this.trackId === null) {
       const description = metadata!.decoderConfig!.description;
@@ -208,13 +284,5 @@ export class VideoExporter {
     }
 
     return trackBuffer;
-  }
-
-  private reset() {
-    this.decoder.reset();
-    this.encoder.reset();
-    this.mp4File = createFile();
-    this.trackId = null;
-    this.nextKeyframeTs = 0;
   }
 }

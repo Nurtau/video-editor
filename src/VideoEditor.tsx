@@ -141,7 +141,12 @@ export const VideoEditor = () => {
               icon: "Export",
               key: "video-export",
               content: () => (
-                <VideoExportSection videoTrackBuffers={videoTrackBuffers} />
+                <VideoExportSection
+                  videoTrackBuffers={videoTrackBuffers}
+                  onExportStart={() => {
+                    controller.pause();
+                  }}
+                />
               ),
             },
           ]}
