@@ -1,4 +1,17 @@
-const DEFAULT_RATIO = 16 / 9;
+import { DEFAULT_RATIO, RATIO_RESOLUTIONS, type RatioKey } from "~/constants";
+
+export interface VideoRendererRawSize {
+  ratio: RatioKey;
+  resolution: string;
+}
+
+interface VideoRendererSize {
+  ratio: number;
+  resolution: {
+    width: number;
+    height: number;
+  };
+}
 
 export class VideoRenderer {
   private canvasOuterBox: HTMLDivElement | null = null;
@@ -7,6 +20,15 @@ export class VideoRenderer {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private unwatch: (() => void)[] = [];
+
+  private size: VideoRendererSize;
+
+  constructor() {
+    this.size = this.extractSize({
+      ratio: DEFAULT_RATIO,
+      resolution: RATIO_RESOLUTIONS[DEFAULT_RATIO].preffered,
+    });
+  }
 
   setCanvasBox = (canvasBox: HTMLDivElement | null) => {
     if (!canvasBox) {
@@ -32,17 +54,32 @@ export class VideoRenderer {
     this.observeBoxWidth(this.updateDimensions);
   };
 
+  setSize = (size: VideoRendererRawSize) => {
+    this.size = this.extractSize(size);
+    this.updateDimensions();
+  };
+
   draw = (frame: VideoFrame) => {
     if (!this.ctx || !this.canvas) {
       throw new Error("canvas must be specified");
     }
 
-    this.canvas.width = frame.displayWidth;
-    this.canvas.height = frame.displayHeight;
+    this.canvas.width = this.size.resolution.width;
+    this.canvas.height = this.size.resolution.height;
     this.updateCanvasDimensions();
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.drawImage(frame, 0, 0);
+    this.ctx.drawImage(
+      frame,
+      0,
+      0,
+      frame.displayWidth,
+      frame.displayHeight,
+      0,
+      0,
+      this.canvas.width,
+      this.canvas.height,
+    );
   };
 
   clear = () => {
@@ -51,6 +88,21 @@ export class VideoRenderer {
     }
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  };
+
+  private extractSize = (size: VideoRendererRawSize): VideoRendererSize => {
+    const [ratioWidth, ratioHeight] = size.ratio.split(":").map(Number);
+    const [resolutionWidth, resolutionHeight] = size.resolution
+      .split("x")
+      .map(Number);
+
+    return {
+      ratio: ratioWidth / ratioHeight,
+      resolution: {
+        width: resolutionWidth,
+        height: resolutionHeight,
+      },
+    };
   };
 
   private observeBoxWidth = (cb: () => void) => {
@@ -67,13 +119,13 @@ export class VideoRenderer {
     let innerBoxWidth;
     let innerBoxHeight;
 
-    if (outerBoxRatio > DEFAULT_RATIO) {
+    if (outerBoxRatio > this.size.ratio) {
       // means that width is bigger than expected
       innerBoxHeight = outerBoxRect.height;
-      innerBoxWidth = innerBoxHeight * DEFAULT_RATIO;
+      innerBoxWidth = innerBoxHeight * this.size.ratio;
     } else {
       innerBoxWidth = outerBoxRect.width;
-      innerBoxHeight = innerBoxWidth / DEFAULT_RATIO;
+      innerBoxHeight = innerBoxWidth / this.size.ratio;
     }
 
     innerBoxWidth = Math.floor(innerBoxWidth);

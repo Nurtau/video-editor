@@ -111,7 +111,7 @@ const ActiveTrackManipulation = ({ track }: ActiveTrackManipulationProps) => {
         />
       </div>
       <div className={resetButtonBoxStyles}>
-        <Button variant="secondary" maxWidth="16rem" onClick={resetEffects}>
+        <Button variant="secondary" maxWidth="18rem" onClick={resetEffects}>
           Reset
         </Button>
       </div>

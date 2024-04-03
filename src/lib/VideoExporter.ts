@@ -1,14 +1,20 @@
 import { createFile, type MP4File } from "mp4box";
 
-import { VideoTrackBuffer, type VideoEffects } from "./VideoTrackBuffer";
+import { VideoHelpers } from "./VideoHelpers";
+import { VideoFrameChanger } from "./VideoFrameChanger";
+import { VideoTrackBuffer } from "./VideoTrackBuffer";
 
 /*
  * IN SAFARI: exported video is huge in memory because chunk type is always key
  */
 
-// @TODO: what about asking user about this number?
 const KEYFRAME_INTERVAL_MICROSECONDS = 4 * 1000 * 1000; // 4 seconds
 const TIMESCALE = 90000;
+
+interface VideoOptions {
+  width: number;
+  height: number;
+}
 
 interface CommonConfig {
   codec: string;
@@ -16,24 +22,48 @@ interface CommonConfig {
   height: number;
 }
 
-// @TODO: show UI progress with percentage maybe
+const QUEUE_WINDOW = 20;
+const MIN_QUEUE_THRESHOLD = 5;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+interface VideoExportProgressState {
+  showProgress: boolean;
+  exported: boolean;
+  maxEncodedNums: number;
+  curEncodedNums: number;
+}
+
+interface VideoExporterProps {
+  onEmit(state: Partial<VideoExportProgressState>): void;
+}
+
 export class VideoExporter {
+  private onEmit: VideoExporterProps["onEmit"];
   private decoder: VideoDecoder;
   private encoder: VideoEncoder;
   private commonConfig: CommonConfig | null = null;
   private nextKeyframeTs = 0;
   private mp4File: MP4File;
   private trackId: number | null = null;
-  private processFrame: (
-    frame: VideoFrame,
-    effects: VideoEffects,
-  ) => VideoFrame;
+  private frameChanger: VideoFrameChanger;
+  private videoTrackBuffers: VideoTrackBuffer[] = [];
+  private encodingNums = 0;
+  private encodedNums = 0;
 
-  constructor({
-    processFrame,
-  }: {
-    processFrame: VideoExporter["processFrame"];
-  }) {
+  static getDefaultState(): VideoExportProgressState {
+    // just random numbers for initial state
+    return {
+      showProgress: false,
+      exported: false,
+      curEncodedNums: 0,
+      maxEncodedNums: 100,
+    };
+  }
+
+  constructor({ onEmit }: VideoExporterProps) {
+    this.onEmit = onEmit;
+    this.frameChanger = new VideoFrameChanger();
     this.mp4File = createFile();
     this.decoder = new VideoDecoder({
       output: this.onDecode,
@@ -43,19 +73,27 @@ export class VideoExporter {
       output: this.onEncode,
       error: console.log,
     });
-    this.processFrame = processFrame;
   }
 
-  exportVideo = async (buffers: VideoTrackBuffer[]) => {
+  exportVideo = async (buffers: VideoTrackBuffer[], options: VideoOptions) => {
     this.reset();
-    if (buffers.length === 0) return;
+    this.videoTrackBuffers = buffers;
 
-    // @TODO: on multiples videos, all buffers config should be considered
-    const firstBufferConfig = buffers[0].getCodecConfig();
+    if (this.videoTrackBuffers.length === 0) return;
+
+    const maxEncodedNums = this.extractEncodingFramesNum(buffers);
+
+    this.onEmit({
+      showProgress: true,
+      exported: false,
+      curEncodedNums: 0,
+      maxEncodedNums,
+    });
+
     const config: CommonConfig = {
-      codec: firstBufferConfig.codec,
-      height: firstBufferConfig.codedHeight ?? 0,
-      width: firstBufferConfig.codedWidth ?? 0,
+      codec: "avc1.4d0034",
+      height: options.height,
+      width: options.width,
     };
     this.commonConfig = config;
 
@@ -64,29 +102,130 @@ export class VideoExporter {
       hardwareAcceleration: "prefer-hardware",
     });
 
-    for (const buffer of buffers) {
-      for (const group of buffer.getVideoChunksGroups()) {
-        const config = buffer.getCodecConfig();
-        this.decoder.configure(config);
+    let prefixTs = 0;
+    let videoTrackIndex = 0;
+    let furthestDecodingVideoChunk: EncodedVideoChunk | null = null;
 
-        for (const chunk of group.videoChunks) {
-          this.decoder.decode(chunk);
+    while (videoTrackIndex < this.videoTrackBuffers.length) {
+      const buffer = this.videoTrackBuffers[videoTrackIndex];
+      const range = buffer.getRange();
+
+      let decodingChunks;
+
+      if (!furthestDecodingVideoChunk) {
+        this.decoder.configure(buffer.getCodecConfig());
+        decodingChunks = buffer.getVideoChunksDependencies(0);
+      } else {
+        decodingChunks = buffer.getNextVideoChunks(
+          furthestDecodingVideoChunk,
+          QUEUE_WINDOW,
+        );
+      }
+
+      if (!decodingChunks) {
+        videoTrackIndex += 1;
+        prefixTs += buffer.getDuration();
+        furthestDecodingVideoChunk = null;
+      } else {
+        decodingChunks.forEach((chunk) => {
+          let timestamp;
+
+          if (
+            chunk.timestamp >= range.start * 1e6 &&
+            chunk.timestamp < range.end * 1e6
+          ) {
+            timestamp = chunk.timestamp + (prefixTs - range.start) * 1e6;
+            this.encodingNums += 1;
+          } else {
+            // this chunk is used to decode other chunks with timestamp within range
+            // therefore we need to instantly close decoded frame
+            timestamp = -1;
+          }
+
+          const updatedChunk = VideoHelpers.recreateVideoChunk(chunk, {
+            timestamp,
+          });
+
+          this.decoder.decode(updatedChunk);
+        });
+
+        furthestDecodingVideoChunk = decodingChunks[decodingChunks.length - 1];
+
+        while (this.encodingNums >= MIN_QUEUE_THRESHOLD) {
+          await sleep(16);
         }
 
-        await this.decoder.flush();
+        this.onEmit({
+          curEncodedNums: this.encodedNums,
+        });
       }
     }
 
+    await this.decoder.flush();
     await this.encoder.flush();
-    this.mp4File.save("mp4box.mp4");
+
+    this.onEmit({
+      exported: true,
+      curEncodedNums: maxEncodedNums,
+    });
+  };
+
+  download = () => {
+    this.mp4File.save("video.mp4");
+  };
+
+  reset = () => {
+    this.decoder.reset();
+    this.encoder.reset();
+    this.mp4File = createFile();
+    this.trackId = null;
+    this.nextKeyframeTs = 0;
+    this.encodedNums = 0;
+    this.encodingNums = 0;
+  };
+
+  private extractEncodingFramesNum = (buffers: VideoTrackBuffer[]) => {
+    let framesNum = 0;
+
+    buffers.forEach((buffer) => {
+      const range = buffer.getRange();
+      buffer.getVideoChunksGroups().forEach((group) => {
+        group.videoChunks.forEach((chunk) => {
+          if (
+            chunk.timestamp >= range.start * 1e6 &&
+            chunk.timestamp < range.end * 1e6
+          ) {
+            framesNum += 1;
+          }
+        });
+      });
+    });
+
+    return framesNum;
   };
 
   private onDecode = async (frame: VideoFrame) => {
-    let keyFrame = false;
-    
-    // @TODO: fix this moment, when reimplementing VideoExporter
-    const processedFrame = this.processFrame(frame, null as any);
+    if (frame.timestamp < 0) {
+      frame.close();
+      return;
+    }
 
+    const videoTrack = this.getActiveVideoTrackAt(frame.timestamp / 1e6);
+
+    if (!videoTrack) {
+      throw new Error(
+        "Internal error: videoTrack for decoded frame must present",
+      );
+    }
+
+    const processedFrame = this.frameChanger.processFrame(
+      frame,
+      videoTrack.getEffects(),
+    );
+
+    frame.close();
+
+    let keyFrame = false;
     if (processedFrame.timestamp >= this.nextKeyframeTs) {
       keyFrame = true;
       this.nextKeyframeTs =
@@ -104,6 +243,9 @@ export class VideoExporter {
     if (!this.commonConfig) {
       throw new Error("INTERNAL ERROR: commonConfig must be defined");
     }
+
+    this.encodingNums -= 1;
+    this.encodedNums += 1;
 
     if (this.trackId === null) {
       const description = metadata!.decoderConfig!.description;
@@ -126,11 +268,21 @@ export class VideoExporter {
     });
   };
 
-  private reset() {
-    this.decoder.reset();
-    this.encoder.reset();
-    this.mp4File = createFile();
-    this.trackId = null;
-    this.nextKeyframeTs = 0;
+  private getActiveVideoTrackAt(timeInS: number) {
+    let trackBuffer: VideoTrackBuffer | null = null;
+    let prefixTimestamp = 0;
+
+    for (let i = 0; i < this.videoTrackBuffers.length; i++) {
+      if (
+        prefixTimestamp <= timeInS &&
+        timeInS <= this.videoTrackBuffers[i].getDuration() + prefixTimestamp
+      ) {
+        trackBuffer = this.videoTrackBuffers[i];
+        break;
+      }
+      prefixTimestamp += this.videoTrackBuffers[i].getDuration();
+    }
+
+    return trackBuffer;
   }
 }
