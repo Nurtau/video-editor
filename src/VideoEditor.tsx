@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
+import { AudioTrackBuffer } from "./lib/AudioTrackBuffer";
 import { VideoTrackBuffer } from "./lib/VideoTrackBuffer";
 import { VideoController } from "./lib/VideoController";
 import { eventsBus } from "./lib/EventsBus";
@@ -25,6 +26,9 @@ export const VideoEditor = () => {
   const { settings } = useVideoSettings();
   const [videoTrackBuffers, setVideoTrackBuffers] = useState<
     VideoTrackBuffer[]
+  >([]);
+  const [audioTrackBuffers, setAudioTrackBuffers] = useState<
+    AudioTrackBuffer[]
   >([]);
 
   const [{ playing }, setControllerState] = useState(
@@ -96,6 +100,10 @@ export const VideoEditor = () => {
     controller.setVideoTrackBuffers(videoTrackBuffers);
   }, [videoTrackBuffers]);
 
+  useEffect(() => {
+    controller.setAudioTrackBuffers(audioTrackBuffers);
+  }, [audioTrackBuffers]);
+
   useHotkeys("right", () => controller.playForward(), []);
   useHotkeys("left", () => controller.playBackward(), []);
   useHotkeys(
@@ -120,6 +128,13 @@ export const VideoEditor = () => {
                     setVideoTrackBuffers((buffers) => {
                       const newBuffers = box.videoTrackBuffers.map((buffer) =>
                         buffer.copy(),
+                      );
+                      return [...buffers, ...newBuffers];
+                    });
+                    setAudioTrackBuffers((buffers) => {
+                      // @NOW: add copy as in video track buffers
+                      const newBuffers = box.audioTrackBuffers.map(
+                        (buffer) => buffer,
                       );
                       return [...buffers, ...newBuffers];
                     });

@@ -45,15 +45,40 @@ const clampTime = (time: number, maxTime: number) => {
   return time;
 };
 
-function getFrameTolerance(frame: EncodedVideoChunk | VideoFrame) {
+function getFrameTolerance(
+  frame: EncodedAudioChunk | AudioData | EncodedVideoChunk | VideoFrame,
+) {
   return Math.ceil(frame.duration! / 16);
 }
 
 function isFrameTimestampEqual(
-  left: EncodedVideoChunk,
-  right: VideoFrame,
+  left: EncodedAudioChunk | EncodedVideoChunk,
+  right: AudioData | VideoFrame,
 ): boolean {
   return Math.abs(left.timestamp - right.timestamp) <= getFrameTolerance(left);
+}
+
+function arrayRemove<T>(array: T[], element: T): void {
+  arrayRemoveAt(array, array.indexOf(element));
+}
+
+function arrayRemoveAt<T>(array: T[], index: number): void {
+  if (index < 0) {
+    return;
+  } else if (index === 0) {
+    array.shift();
+  } else {
+    array.splice(index, 1);
+  }
+}
+
+function isConsecutiveAudioFrame(
+  previous: AudioData,
+  next: AudioData,
+): boolean {
+  const diff = next.timestamp - (previous.timestamp + previous.duration);
+  // Due to rounding, there can be a small gap between consecutive audio frames.
+  return Math.abs(diff) <= VideoHelpers.getFrameTolerance(previous);
 }
 
 export const VideoHelpers = {
@@ -62,4 +87,8 @@ export const VideoHelpers = {
   recreateVideoChunk,
   clampTime,
   isFrameTimestampEqual,
+  getFrameTolerance,
+  arrayRemove,
+  arrayRemoveAt,
+  isConsecutiveAudioFrame,
 };

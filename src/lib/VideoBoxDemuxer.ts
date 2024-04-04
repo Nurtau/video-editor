@@ -6,6 +6,8 @@ import {
   type MP4Sample,
 } from "mp4box";
 
+import { AudioDataDecoder } from "./AudioDataDecoder";
+import { AudioTrackBuffer } from "./AudioTrackBuffer";
 import { VideoFrameDecoder } from "./VideoFrameDecoder";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { generateId } from "./helpers";
@@ -25,6 +27,7 @@ const extractSamples = (mp4File: MP4File, trackId: number) => {
 export interface VideoBox {
   id: number;
   videoTrackBuffers: VideoTrackBuffer[];
+  audioTrackBuffers: AudioTrackBuffer[];
 }
 
 const processBuffer = async (buffer: ArrayBuffer): Promise<VideoBox> => {
@@ -39,6 +42,7 @@ const processBuffer = async (buffer: ArrayBuffer): Promise<VideoBox> => {
 
   const info = await infoPromise;
   const videoTrackBuffers: VideoTrackBuffer[] = [];
+  const audioTrackBuffers: AudioTrackBuffer[] = [];
 
   for (const track of info.videoTracks) {
     const samples = await extractSamples(mp4File, track.id);
@@ -51,9 +55,16 @@ const processBuffer = async (buffer: ArrayBuffer): Promise<VideoBox> => {
     videoTrackBuffers.push(trackBuffer);
   }
 
-  // @TODO: handle audio tracks
+  for (const track of info.audioTracks) {
+    const samples = await extractSamples(mp4File, track.id);
+    const trak = mp4File.getTrackById(track.id);
+    const codecConfig = AudioDataDecoder.buildConfig(track, trak);
+    const trackBuffer = new AudioTrackBuffer(track, samples, codecConfig);
+    audioTrackBuffers.push(trackBuffer);
+  }
 
   return {
+    audioTrackBuffers,
     videoTrackBuffers,
     id: generateId(),
   };
