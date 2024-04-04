@@ -151,5 +151,10 @@ declare module "mp4box" {
 
   export function createFile(): MP4File;
 
+  export type AudioTrackInfo = any;
+  export type Box = any;
+  export type MP4aBox = any;
+  export type TrakBox = any;
+
   export {};
 }

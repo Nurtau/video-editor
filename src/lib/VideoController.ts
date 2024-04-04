@@ -122,7 +122,7 @@ export class VideoController {
   };
 
   setVideoSize = (size: VideoRendererRawSize) => {
-    this.renderer.setSize(size);
+    this.videoRenderer.setSize(size);
     this.lastRenderedVideoFrameTs = null;
     this.renderVideoFrame();
   };
@@ -174,6 +174,7 @@ export class VideoController {
     );
     eventsBus.dispatch("currentTime", this.currentTimeInS);
     this.decodeVideoFrames();
+    this.decodeAudio();
     this.scheduleRenderVideoFrameIfPossible();
 
     if (this.playing) {
@@ -349,7 +350,6 @@ export class VideoController {
   }
 
   private onDecodedAudioData = (frame: AudioData) => {
-    console.error(frame);
     const decodingFrameIndex = this.decodingAudioChunks.findIndex((x) =>
       VideoHelpers.isFrameTimestampEqual(x, frame),
     );
@@ -372,20 +372,8 @@ export class VideoController {
     this.decodeAudio();
   };
 
-  private isConsecutiveAudioFrame(
-    previous: AudioData,
-    next: AudioData,
-  ): boolean {
-    let diff: number;
-    diff = next.timestamp - (previous.timestamp + previous.duration);
-    // Due to rounding, there can be a small gap between consecutive audio frames.
-    return Math.abs(diff) <= VideoHelpers.getFrameTolerance(previous);
-  }
-
   private decodeAudio(): void {
-    //console.log("decodeAudio", this.furthestDecodingAudioChunk);
     const audioTrackBuffer = this.audioTrackBuffers[0];
-    //console.log(audioTrackBuffer);
     if (!audioTrackBuffer) {
       return;
     }
@@ -400,7 +388,6 @@ export class VideoController {
       const frameAtTime = audioTrackBuffer.getAudioChunksDependencies(
         this.currentTimeInS,
       );
-      //console.log(frameAtTime);
       if (frameAtTime === null) {
         return;
       }
@@ -409,9 +396,6 @@ export class VideoController {
         audioTrackBuffer.getCodecConfig(),
       );
     }
-
-    //console.log(this.decodingAudioChunks.length, this.audioDataQueue.length);
-
     // Decode next frames in advance
     while (
       this.decodingAudioChunks.length + this.audioDataQueue.length <
@@ -422,7 +406,6 @@ export class VideoController {
         decodeQueueHwm -
           (this.decodingAudioChunks.length + this.audioDataQueue.length),
       );
-      //console.log(nextQueue);
       if (nextQueue === undefined) {
         break;
       }
@@ -463,21 +446,15 @@ export class VideoController {
         return frame.timestamp === this.lastScheduledAudioFrameTime;
       });
     }
-    //console.log(this.lastScheduledAudioFrameTime);
     if (nextFrameIndex < 0) {
       // Render the frame at current time.
       nextFrameIndex = this.audioDataQueue.findIndex((frame) => {
-        //console.log(frame, this.currentTimeInS);
-        //console.log(this.audioDataQueue[1]);
-        //console.log("__________________");
         return (
           frame.timestamp <= currentTimeInMicros &&
           currentTimeInMicros < frame.timestamp + frame.duration
         );
       });
     }
-
-    console.log("NextFrameIndex:", nextFrameIndex);
     if (nextFrameIndex < 0) {
       // Decode more frames (if we now have more space in the queue)
       this.decodeAudio();
@@ -495,7 +472,7 @@ export class VideoController {
       const frame = this.audioDataQueue[frameIndex];
       const previousFrame = frames[frames.length - 1];
       if (
-        this.isConsecutiveAudioFrame(previousFrame, frame) &&
+        VideoHelpers.isConsecutiveAudioFrame(previousFrame, frame) &&
         frame.format === firstFrame.format &&
         frame.numberOfChannels === firstFrame.numberOfChannels &&
         frame.sampleRate === firstFrame.sampleRate

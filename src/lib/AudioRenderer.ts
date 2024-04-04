@@ -13,6 +13,10 @@ export class AudioRenderer {
     node: AudioBufferSourceNode;
     timestamp: number;
   }> = [];
+
+  private prevTimeInMicros: number | null = null;
+  private elapsedFromContext = 0;
+
   process(frames: AudioData[], currentTimeInMicros: number) {
     const firstFrame = frames[0];
     this.audioContext ??= this.initializeAudio(firstFrame.sampleRate);
@@ -48,8 +52,14 @@ export class AudioRenderer {
       void this.audioContext.close();
       this.audioContext = null;
     }
+    this.scheduledAudioSourceNodes.forEach(({ node }) => {
+      node.stop();
+      node.disconnect();
+    });
     this.scheduledAudioSourceNodes = [];
     this.volumeGainNode = undefined;
+    this.prevTimeInMicros = null;
+    this.elapsedFromContext = 0;
   }
 
   resume(): void {
@@ -87,7 +97,6 @@ export class AudioRenderer {
     timestamp: number,
     currentTimeInMicros: number,
   ): void {
-    console.log("SCHEDULE AUDIO BUFFER");
     const node = this.audioContext!.createBufferSource();
     node.buffer = audioBuffer;
     node.connect(this.volumeGainNode!);
@@ -95,20 +104,26 @@ export class AudioRenderer {
     const entry = { node: node, timestamp };
     this.scheduledAudioSourceNodes.push(entry);
     node.addEventListener("ended", () => {
-      console.log("NODE ENDS");
+      node.disconnect();
       VideoHelpers.arrayRemove(this.scheduledAudioSourceNodes, entry);
     });
 
     const offset = (timestamp - currentTimeInMicros) / 1e6;
     node.playbackRate.value = 1;
 
-    console.log(offset, timestamp, currentTimeInMicros);
+    if (this.prevTimeInMicros === null) {
+      this.elapsedFromContext = 0;
+    } else {
+      this.elapsedFromContext += currentTimeInMicros - this.prevTimeInMicros;
+    }
+
+    this.prevTimeInMicros = currentTimeInMicros;
+    const currentTime = this.elapsedFromContext / 1e6;
 
     if (offset > 0) {
-      console.log("START");
-      node.start(0, offset);
+      node.start(currentTime + offset);
     } else {
-      node.start(-offset);
+      node.start(currentTime, -offset);
     }
   }
 }

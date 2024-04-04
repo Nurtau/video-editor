@@ -1,13 +1,6 @@
-// @NOW: fix types
-import {
-  AudioTrackInfo,
-  Box,
-  Mp4aBox,
-  type MP4VideoTrack,
-  TrakBox,
-} from "mp4box";
+import type { AudioTrackInfo, Box, MP4aBox, TrakBox } from "mp4box";
 
-function isMp4aEntry(entry: Box): entry is Mp4aBox {
+function isMp4aEntry(entry: Box): entry is MP4aBox {
   return entry.type === "mp4a";
 }
 
@@ -29,7 +22,6 @@ export class AudioDataDecoder {
   private lastConfig: AudioDecoderConfig | null = null;
 
   static buildConfig(info: AudioTrackInfo, trak: TrakBox): AudioDecoderConfig {
-    console.log(info, trak);
     return {
       codec: info.codec,
       numberOfChannels: info.audio.channel_count,

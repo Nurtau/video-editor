@@ -101,7 +101,6 @@ export const VideoEditor = () => {
   }, [videoTrackBuffers]);
 
   useEffect(() => {
-    console.log(audioTrackBuffers);
     controller.setAudioTrackBuffers(audioTrackBuffers);
   }, [audioTrackBuffers]);
 

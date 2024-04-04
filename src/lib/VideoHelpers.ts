@@ -72,42 +72,13 @@ function arrayRemoveAt<T>(array: T[], index: number): void {
   }
 }
 
-function cloneAudioData(original: AudioData, timestamp: number): AudioData {
-  const format = "f32-planar";
-  let totalSize = 0;
-  for (
-    let channelIndex = 0;
-    channelIndex < original.numberOfChannels;
-    channelIndex++
-  ) {
-    totalSize +=
-      original.allocationSize({ format, planeIndex: channelIndex }) /
-      Float32Array.BYTES_PER_ELEMENT;
-  }
-  const buffer = new Float32Array(totalSize);
-  let offset = 0;
-  for (
-    let channelIndex = 0;
-    channelIndex < original.numberOfChannels;
-    channelIndex++
-  ) {
-    const options: AudioDataCopyToOptions = {
-      format,
-      planeIndex: channelIndex,
-    };
-    const channelSize =
-      original.allocationSize(options) / Float32Array.BYTES_PER_ELEMENT;
-    original.copyTo(buffer.subarray(offset, offset + totalSize), options);
-    offset += channelSize;
-  }
-  return new AudioData({
-    data: buffer,
-    format,
-    numberOfChannels: original.numberOfChannels,
-    numberOfFrames: original.numberOfFrames,
-    sampleRate: original.sampleRate,
-    timestamp: timestamp,
-  });
+function isConsecutiveAudioFrame(
+  previous: AudioData,
+  next: AudioData,
+): boolean {
+  const diff = next.timestamp - (previous.timestamp + previous.duration);
+  // Due to rounding, there can be a small gap between consecutive audio frames.
+  return Math.abs(diff) <= VideoHelpers.getFrameTolerance(previous);
 }
 
 export const VideoHelpers = {
@@ -119,5 +90,5 @@ export const VideoHelpers = {
   getFrameTolerance,
   arrayRemove,
   arrayRemoveAt,
-  cloneAudioData,
+  isConsecutiveAudioFrame,
 };
