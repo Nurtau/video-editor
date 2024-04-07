@@ -4,14 +4,14 @@ import {
   VideoBoxesContext,
   type VideoBoxesContextState,
 } from "./VideoBoxesContext";
-import { type ExtendedVideoBox } from "./VideoBoxItem";
+import { type VideoUploadBox } from "./VideoBoxItem";
 
 interface VideoBoxesProviderProps {
   children: ReactNode;
 }
 
 export const VideoBoxesProvider = ({ children }: VideoBoxesProviderProps) => {
-  const [videoBoxes, setVideoBoxes] = useState<ExtendedVideoBox[]>([]);
+  const [videoBoxes, setVideoBoxes] = useState<VideoUploadBox[]>([]);
 
   const contextState: VideoBoxesContextState = useMemo(
     () => ({

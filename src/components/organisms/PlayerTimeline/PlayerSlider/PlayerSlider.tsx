@@ -1,4 +1,4 @@
-import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
+import { type VideoBox } from "~/lib/VideoBox";
 import { SliderControlType } from "~/types";
 import { VideoTrackBox } from "~/components/molecules";
 
@@ -10,13 +10,13 @@ import {
 
 interface PlayerSliderProps {
   timeToPx: number;
-  videoTrackBuffers: VideoTrackBuffer[];
+  videoBoxes: VideoBox[];
   controlType: SliderControlType;
 }
 
 export const PlayerSlider = ({
   timeToPx,
-  videoTrackBuffers,
+  videoBoxes,
   controlType,
 }: PlayerSliderProps) => {
   return (
@@ -25,10 +25,10 @@ export const PlayerSlider = ({
       <div className={trackBoxStyles}></div>
       <div className={trackBoxStyles}>
         <div className={trackStyles}>
-          {videoTrackBuffers.map((buffer) => (
+          {videoBoxes.map((box) => (
             <VideoTrackBox
-              key={buffer.id}
-              buffer={buffer}
+              key={box.id}
+              box={box}
               timeToPx={timeToPx}
               controlType={controlType}
             />

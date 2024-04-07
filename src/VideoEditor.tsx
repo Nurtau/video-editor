@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import { AudioTrackBuffer } from "./lib/AudioTrackBuffer";
-import { VideoTrackBuffer } from "./lib/VideoTrackBuffer";
+import { VideoBox } from "./lib/VideoBox";
 import { VideoController } from "./lib/VideoController";
 import { eventsBus } from "./lib/EventsBus";
 import { Layout, PlayerCanvas, Sidebar } from "./components/atoms";
@@ -14,7 +14,7 @@ import {
   PlayerTimeline,
   useVideoSettings,
 } from "./components/organisms";
-import { PlayerControls, useActiveTrack } from "./components/molecules";
+import { PlayerControls, useActiveVideoBox } from "./components/molecules";
 
 type SidebarKey =
   | "videos-upload"
@@ -24,9 +24,7 @@ type SidebarKey =
 
 export const VideoEditor = () => {
   const { settings } = useVideoSettings();
-  const [videoTrackBuffers, setVideoTrackBuffers] = useState<
-    VideoTrackBuffer[]
-  >([]);
+  const [videoBoxes, setVideoBoxes] = useState<VideoBox[]>([]);
   const [audioTrackBuffers, setAudioTrackBuffers] = useState<
     AudioTrackBuffer[]
   >([]);
@@ -44,61 +42,61 @@ export const VideoEditor = () => {
 
   const [activeSidebarKey, setActiveSidebarKey] =
     useState<SidebarKey>("videos-upload");
-  const { activeTrack, setActiveTrack } = useActiveTrack();
+  const { activeVideoBox, setActiveVideoBox } = useActiveVideoBox();
 
   useEffect(() => {
     controller.setVideoSize(settings);
   }, [settings]);
 
   useEffect(() => {
-    if (!activeTrack) return;
+    if (!activeVideoBox) return;
     setActiveSidebarKey("effects");
-  }, [activeTrack]);
+  }, [activeVideoBox]);
 
   useEffect(() => {
-    if (!activeTrack) return;
+    if (!activeVideoBox) return;
 
-    if (!videoTrackBuffers.includes(activeTrack)) {
-      setActiveTrack(null);
+    if (!videoBoxes.includes(activeVideoBox)) {
+      setActiveVideoBox(null);
     }
-  }, [activeTrack, videoTrackBuffers]);
+  }, [activeVideoBox, videoBoxes]);
 
   useEffect(() => {
     // @TODO: there is a room for optimisation, because modifiedVideoTrackId returns a changed track
-    return eventsBus.subscribe("modifiedVideoTrackId", () => {
-      setVideoTrackBuffers((cur) => [...cur]);
+    return eventsBus.subscribe("modifiedVideoBoxId", () => {
+      setVideoBoxes((cur) => [...cur]);
     });
   }, []);
 
   useEffect(() => {
-    return eventsBus.subscribe("deletedVideoTrackId", (id) => {
-      setVideoTrackBuffers((curTracks) =>
+    return eventsBus.subscribe("deletedVideoBoxId", (id) => {
+      setVideoBoxes((curTracks) =>
         curTracks.filter((track) => track.id !== id),
       );
     });
   }, []);
 
   useEffect(() => {
-    return eventsBus.subscribe("splittedVideoTrack", ({ id, atTime }) => {
-      setVideoTrackBuffers((curTracks) => {
-        const nextTracks: VideoTrackBuffer[] = [];
+    return eventsBus.subscribe("splittedVideoBox", ({ id, atTime }) => {
+      setVideoBoxes((curBoxes) => {
+        const nextBoxes: VideoBox[] = [];
 
-        curTracks.forEach((track) => {
-          if (track.id === id) {
-            nextTracks.push(...track.splitAt(atTime));
+        curBoxes.forEach((box) => {
+          if (box.id === id) {
+            nextBoxes.push(...box.splitAt(atTime));
           } else {
-            nextTracks.push(track);
+            nextBoxes.push(box);
           }
         });
 
-        return nextTracks;
+        return nextBoxes;
       });
     });
   }, []);
 
   useEffect(() => {
-    controller.setVideoTrackBuffers(videoTrackBuffers);
-  }, [videoTrackBuffers]);
+    controller.setVideoBoxes(videoBoxes);
+  }, [videoBoxes]);
 
   useEffect(() => {
     controller.setAudioTrackBuffers(audioTrackBuffers);
@@ -125,17 +123,15 @@ export const VideoEditor = () => {
               content: () => (
                 <VideoUploadSection
                   onMoveToTimeline={(box) => {
-                    setVideoTrackBuffers((buffers) => {
-                      const newBuffers = box.videoTrackBuffers.map((buffer) =>
-                        buffer.copy(),
-                      );
-                      return [...buffers, ...newBuffers];
+                    setVideoBoxes((curBoxes) => {
+                      console.log(box);
+                      return [...curBoxes, box.copy()];
                     });
                     setAudioTrackBuffers((buffers) => {
-                      // @NOW: add copy as in video track buffers
-                      const newBuffers = box.audioTrackBuffers.map(
-                        (buffer) => buffer,
-                      );
+                      // @NOW: should be handled inside VideoBox, not seperate
+                      const newBuffers = box
+                        .getAudioTrackBuffers()
+                        .map((buffer) => buffer);
                       return [...buffers, ...newBuffers];
                     });
                   }}
@@ -157,7 +153,7 @@ export const VideoEditor = () => {
               key: "video-export",
               content: () => (
                 <VideoExportSection
-                  videoTrackBuffers={videoTrackBuffers}
+                  videoBoxes={videoBoxes}
                   onExportStart={() => {
                     controller.pause();
                   }}
@@ -169,7 +165,7 @@ export const VideoEditor = () => {
       </Layout.Controls>
       <Layout.Player>
         <PlayerCanvas ref={controller.setCanvasBox}>
-          {videoTrackBuffers.length > 0 && (
+          {videoBoxes.length > 0 && (
             <PlayerControls
               playing={playing}
               play={controller.play}
@@ -181,10 +177,7 @@ export const VideoEditor = () => {
         </PlayerCanvas>
       </Layout.Player>
       <Layout.Track>
-        <PlayerTimeline
-          videoTrackBuffers={videoTrackBuffers}
-          seek={controller.seek}
-        />
+        <PlayerTimeline videoBoxes={videoBoxes} seek={controller.seek} />
       </Layout.Track>
     </Layout.Box>
   );

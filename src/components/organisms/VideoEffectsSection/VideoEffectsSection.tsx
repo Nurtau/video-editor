@@ -3,11 +3,9 @@ import { useState, useMemo, useEffect } from "react";
 import { Slider, Button } from "~/components/atoms";
 import { eventsBus } from "~/lib/EventsBus";
 import { throttle } from "~/lib/helpers";
-import { useActiveTrack } from "~/components/molecules";
-import {
-  type VideoTrackBuffer,
-  type VideoEffects,
-} from "~/lib/VideoTrackBuffer";
+
+import { useActiveVideoBox } from "~/components/molecules";
+import { type VideoBox, type VideoBoxEffects } from "~/lib/VideoBox";
 
 import {
   sectionBoxStyles,
@@ -20,51 +18,53 @@ import {
 } from "./VideoEffectsSection.css";
 
 export const VideoEffectsSection = () => {
-  const { activeTrack } = useActiveTrack();
+  const { activeVideoBox } = useActiveVideoBox();
 
   return (
     <div className={sectionBoxStyles}>
       <h3 className={titleStyles}>Video effects</h3>
-      {!activeTrack && (
+      {!activeVideoBox && (
         <div className={boxBorderStyles}>
           <div className={contentLabelStyles}>
             To apply the video effects, please select the video track first
           </div>
         </div>
       )}
-      {activeTrack && <ActiveTrackManipulation track={activeTrack} />}
+      {activeVideoBox && <ActiveTrackManipulation videoBox={activeVideoBox} />}
     </div>
   );
 };
 
 interface ActiveTrackManipulationProps {
-  track: VideoTrackBuffer;
+  videoBox: VideoBox;
 }
 
-const ActiveTrackManipulation = ({ track }: ActiveTrackManipulationProps) => {
-  const [effects, setEffects] = useState(track.getEffects());
+const ActiveTrackManipulation = ({
+  videoBox,
+}: ActiveTrackManipulationProps) => {
+  const [effects, setEffects] = useState(videoBox.getEffects());
 
   const throttledBusDispatch = useMemo(
     () =>
       throttle(() => {
-        eventsBus.dispatch("modifiedVideoTrackId", track.id);
+        eventsBus.dispatch("modifiedVideoBoxId", videoBox.id);
       }, 100),
-    [track.id],
+    [videoBox.id],
   );
 
   useEffect(() => {
-    setEffects(track.getEffects());
-  }, [track.id]);
+    setEffects(videoBox.getEffects());
+  }, [videoBox.id]);
 
-  const updateEffects = (effects: Partial<VideoEffects>) => {
-    track.updateEffects(effects);
-    setEffects(track.getEffects());
+  const updateEffects = (effects: Partial<VideoBoxEffects>) => {
+    videoBox.updateEffects(effects);
+    setEffects(videoBox.getEffects());
     throttledBusDispatch();
   };
 
   const resetEffects = () => {
-    track.resetEffects();
-    setEffects(track.getEffects());
+    videoBox.resetEffects();
+    setEffects(videoBox.getEffects());
     throttledBusDispatch();
   };
 

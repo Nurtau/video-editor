@@ -1,4 +1,4 @@
-import { type VideoEffects } from "../VideoTrackBuffer";
+import { type VideoBoxEffects } from "../VideoBox";
 import {
   TexturePerPixelProcessor,
   TextureSpatialConvolutionProcessor,
@@ -13,7 +13,7 @@ export class VideoFrameChanger {
     this.spatialConvolutionProcessor = new TextureSpatialConvolutionProcessor();
   }
 
-  processFrame = (frame: VideoFrame, effects: VideoEffects) => {
+  processFrame = (frame: VideoFrame, effects: VideoBoxEffects) => {
     const init = {
       codedHeight: frame.codedHeight,
       codedWidth: frame.codedWidth,

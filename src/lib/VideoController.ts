@@ -1,6 +1,6 @@
 import { VideoFrameDecoder } from "./VideoFrameDecoder";
 import { VideoRenderer, type VideoRendererRawSize } from "./VideoRenderer";
-import { VideoTrackBuffer } from "./VideoTrackBuffer";
+import { VideoBox } from "./VideoBox";
 import { AudioTrackBuffer } from "./AudioTrackBuffer";
 import { AudioDataDecoder } from "./AudioDataDecoder";
 import { AudioRenderer } from "./AudioRenderer";
@@ -32,7 +32,7 @@ export class VideoController {
 
   private frameQueue: VideoFrame[] = [];
   private decodingVideoChunks: EncodedVideoChunk[] = [];
-  private videoTrackBuffers: VideoTrackBuffer[] = [];
+  private videoBoxes: VideoBox[] = [];
   private audioTrackBuffers: AudioTrackBuffer[] = [];
   private audioDataQueue: AudioData[] = [];
   private decodingAudioChunks: EncodedAudioChunk[] = [];
@@ -51,9 +51,9 @@ export class VideoController {
 
   private furthestDecodingAudioChunk: EncodedAudioChunk | undefined = undefined;
 
-  private activeVideoTrack: {
+  private activeVideoBox: {
     prefixTs: number;
-    buffer: VideoTrackBuffer;
+    box: VideoBox;
   } | null = null;
 
   private frameChanger: VideoFrameChanger;
@@ -77,30 +77,30 @@ export class VideoController {
     this.frameChanger = new VideoFrameChanger();
   }
 
-  setVideoTrackBuffers = (videoTrackBuffers: VideoTrackBuffer[]) => {
-    const nextBufferIds = new Set(videoTrackBuffers.map((track) => track.id));
-    let bufferWasDeleted = false;
+  setVideoBoxes = (videoBoxes: VideoBox[]) => {
+    const nextBoxIds = new Set(videoBoxes.map((track) => track.id));
+    let boxWasDeleted = false;
 
-    this.videoTrackBuffers.forEach((buffer) => {
-      if (!nextBufferIds.has(buffer.id)) {
-        bufferWasDeleted = true;
+    this.videoBoxes.forEach((buffer) => {
+      if (!nextBoxIds.has(buffer.id)) {
+        boxWasDeleted = true;
       }
     });
 
-    if (bufferWasDeleted) {
+    if (boxWasDeleted) {
       this.resetVideo();
     }
 
-    this.videoTrackBuffers = videoTrackBuffers;
-    const totalDuration = this.videoTrackBuffers.reduce(
-      (cur, trackBuffer) => cur + trackBuffer.getDuration(),
+    this.videoBoxes = videoBoxes;
+    const totalDuration = this.videoBoxes.reduce(
+      (cur, box) => cur + box.getDurationInS(),
       0,
     );
 
     this.totalDurationInS = totalDuration;
     eventsBus.dispatch("totalDuration", totalDuration);
 
-    if (this.videoTrackBuffers.length > 0) {
+    if (this.videoBoxes.length > 0) {
       this.seek(this.currentTimeInS);
     } else {
       this.videoRenderer.clear();
@@ -160,11 +160,10 @@ export class VideoController {
 
     if (!isTimeCloseToCurrent) {
       this.resetVideo();
+      this.resetAudio();
     }
 
-    this.resetAudio();
-
-    this.activeVideoTrack = null;
+    this.activeVideoBox = null;
     this.resetScheduleRenderId();
     this.lastRenderedVideoFrameTs = null;
 
@@ -216,17 +215,16 @@ export class VideoController {
   }
 
   private decodeVideoFrames() {
-    if (!this.activeVideoTrack) {
-      const activeVideoTrack = this.getActiveVideoTrack();
+    if (!this.activeVideoBox) {
+      const activeVideoTrack = this.getActiveBox();
 
       if (!activeVideoTrack) return;
-      this.activeVideoTrack = activeVideoTrack;
+      this.activeVideoBox = activeVideoTrack;
     }
 
-    const trackBuffer = this.activeVideoTrack.buffer;
-    const prefixTimestamp = this.activeVideoTrack.prefixTs;
-    const codecConfig = trackBuffer.getCodecConfig();
-    const range = trackBuffer.getRange();
+    const videoBox = this.activeVideoBox.box;
+    const prefixTimestamp = this.activeVideoBox.prefixTs;
+    const range = videoBox.getRange();
 
     if (this.furthestDecodingVideoChunk === null) {
       // it can be negative when we are decoding frames of next track
@@ -235,23 +233,24 @@ export class VideoController {
         0,
       );
       const videoChunksDependencies =
-        trackBuffer.getVideoChunksDependencies(dependenciesAtTs);
+        videoBox.getVideoChunksDependencies(dependenciesAtTs);
 
       if (!videoChunksDependencies) return;
+
       this.decodeVideoChunks(
-        videoChunksDependencies,
-        codecConfig,
+        videoChunksDependencies.chunks,
+        videoChunksDependencies.codecConfig,
         prefixTimestamp,
         range.start,
         range.end,
       );
 
-      const nextVideoChunks = trackBuffer.getNextVideoChunks(
+      const nextVideoChunks = videoBox.getNextVideoChunks(
         this.furthestDecodingVideoChunk!,
         1,
       );
 
-      if (!nextVideoChunks || nextVideoChunks.length === 0) {
+      if (!nextVideoChunks || nextVideoChunks.chunks.length === 0) {
         this.frameDecoder.flush();
       }
     }
@@ -260,17 +259,19 @@ export class VideoController {
       MAX_CAPACITY - (this.frameQueue.length + this.decodingVideoChunks.length);
 
     if (availableSpace > 0) {
-      const nextVideoChunks = trackBuffer.getNextVideoChunks(
+      const nextVideoChunks = videoBox.getNextVideoChunks(
         this.furthestDecodingVideoChunk!,
         availableSpace,
       );
 
-      if (!nextVideoChunks || nextVideoChunks.length === 0) {
+      console.log(nextVideoChunks);
+
+      if (!nextVideoChunks || nextVideoChunks.chunks.length === 0) {
         this.frameDecoder.flush();
-        const nextTrackBuffer = this.getNextActiveVideoTrack(trackBuffer);
+        const nextTrackBuffer = this.getNextActiveVideoBox(videoBox);
 
         if (nextTrackBuffer) {
-          this.activeVideoTrack = nextTrackBuffer;
+          this.activeVideoBox = nextTrackBuffer;
           this.furthestDecodingVideoChunk = null;
         }
 
@@ -278,8 +279,8 @@ export class VideoController {
       }
 
       this.decodeVideoChunks(
-        nextVideoChunks,
-        codecConfig,
+        nextVideoChunks.chunks,
+        nextVideoChunks.codecConfig,
         prefixTimestamp,
         range.start,
         range.end,
@@ -498,43 +499,43 @@ export class VideoController {
     this.decodeAudio();
   }
 
-  private getActiveVideoTrackAt(timeInS: number) {
-    let trackBuffer: VideoTrackBuffer | null = null;
+  private getActiveVideoBoxAt(timeInS: number) {
+    let videoBox: VideoBox | null = null;
     let prefixTimestamp = 0;
 
-    for (let i = 0; i < this.videoTrackBuffers.length; i++) {
+    for (let i = 0; i < this.videoBoxes.length; i++) {
       if (
         prefixTimestamp <= timeInS &&
-        timeInS <= this.videoTrackBuffers[i].getDuration() + prefixTimestamp
+        timeInS <= this.videoBoxes[i].getDurationInS() + prefixTimestamp
       ) {
-        trackBuffer = this.videoTrackBuffers[i];
+        videoBox = this.videoBoxes[i];
         break;
       }
-      prefixTimestamp += this.videoTrackBuffers[i].getDuration();
+      prefixTimestamp += this.videoBoxes[i].getDurationInS();
     }
 
-    if (!trackBuffer) return null;
-    return { prefixTs: prefixTimestamp, buffer: trackBuffer };
+    if (!videoBox) return null;
+    return { prefixTs: prefixTimestamp, box: videoBox };
   }
 
-  private getActiveVideoTrack() {
-    return this.getActiveVideoTrackAt(this.currentTimeInS);
+  private getActiveBox() {
+    return this.getActiveVideoBoxAt(this.currentTimeInS);
   }
 
-  private getNextActiveVideoTrack(trackBuffer: VideoTrackBuffer) {
-    const trackBufferIndex = this.videoTrackBuffers.findIndex(
-      (track) => track.id === trackBuffer.id,
+  private getNextActiveVideoBox(videoBox: VideoBox) {
+    const boxIndex = this.videoBoxes.findIndex(
+      (track) => track.id === videoBox.id,
     );
 
-    const nextTrackIndex = trackBufferIndex + 1;
-    if (nextTrackIndex >= this.videoTrackBuffers.length) return null;
+    const nextBoxIndex = boxIndex + 1;
+    if (nextBoxIndex >= this.videoBoxes.length) return null;
 
-    const nextTrackBuffer = this.videoTrackBuffers[nextTrackIndex];
-    const prefixTs = this.videoTrackBuffers
-      .slice(0, nextTrackIndex)
-      .reduce((acc, track) => acc + track.getDuration(), 0);
+    const nextBox = this.videoBoxes[nextBoxIndex];
+    const prefixTs = this.videoBoxes
+      .slice(0, nextBoxIndex)
+      .reduce((acc, track) => acc + track.getDurationInS(), 0);
 
-    return { prefixTs, buffer: nextTrackBuffer };
+    return { prefixTs, box: nextBox };
   }
 
   private renderVideoFrame() {
@@ -559,13 +560,13 @@ export class VideoController {
 
       if (this.lastRenderedVideoFrameTs !== currentFrame.timestamp) {
         const timestampInS = Math.max(0, currentFrame.timestamp / 1e6);
-        const videoTrack = this.getActiveVideoTrackAt(timestampInS);
+        const videoBox = this.getActiveVideoBoxAt(timestampInS);
 
-        if (!videoTrack) return;
+        if (!videoBox) return;
 
         const processedFrame = this.frameChanger.processFrame(
           currentFrame,
-          videoTrack.buffer.getEffects(),
+          videoBox.box.getEffects(),
         );
         this.videoRenderer.draw(processedFrame);
         processedFrame.close();
@@ -580,7 +581,7 @@ export class VideoController {
     this.frameQueue.forEach((frame) => frame.close());
     this.frameQueue = [];
     this.decodingVideoChunks = [];
-    this.activeVideoTrack = null;
+    this.activeVideoBox = null;
   }
 
   private resetAudio() {

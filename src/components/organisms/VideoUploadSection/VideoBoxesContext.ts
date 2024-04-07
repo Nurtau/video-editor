@@ -1,10 +1,10 @@
 import { createContext } from "react";
 
-import { type ExtendedVideoBox } from "./VideoBoxItem";
+import { type VideoUploadBox } from "./VideoBoxItem";
 
 export interface VideoBoxesContextState {
-  videoBoxes: ExtendedVideoBox[];
-  setVideoBoxes(nextVideoBoxes: ExtendedVideoBox[]): void;
+  videoBoxes: VideoUploadBox[];
+  setVideoBoxes(nextVideoBoxes: VideoUploadBox[]): void;
 }
 
 export const VideoBoxesContext = createContext<VideoBoxesContextState | null>(

@@ -2,7 +2,7 @@ import { createFile, type MP4File } from "mp4box";
 
 import { VideoHelpers } from "./VideoHelpers";
 import { VideoFrameChanger } from "./VideoFrameChanger";
-import { VideoTrackBuffer } from "./VideoTrackBuffer";
+import { VideoBox } from "./VideoBox";
 
 /*
  * IN SAFARI: exported video is huge in memory because chunk type is always key
@@ -47,9 +47,10 @@ export class VideoExporter {
   private mp4File: MP4File;
   private trackId: number | null = null;
   private frameChanger: VideoFrameChanger;
-  private videoTrackBuffers: VideoTrackBuffer[] = [];
+  private videoBoxes: VideoBox[] = [];
   private encodingNums = 0;
   private encodedNums = 0;
+  private videoDecoderConfig: VideoDecoderConfig | null = null;
 
   static getDefaultState(): VideoExportProgressState {
     // just random numbers for initial state
@@ -75,13 +76,13 @@ export class VideoExporter {
     });
   }
 
-  exportVideo = async (buffers: VideoTrackBuffer[], options: VideoOptions) => {
+  exportVideo = async (boxes: VideoBox[], options: VideoOptions) => {
     this.reset();
-    this.videoTrackBuffers = buffers;
+    this.videoBoxes = boxes;
 
-    if (this.videoTrackBuffers.length === 0) return;
+    if (this.videoBoxes.length === 0) return;
 
-    const maxEncodedNums = this.extractEncodingFramesNum(buffers);
+    const maxEncodedNums = this.extractEncodingFramesNum(boxes);
 
     this.onEmit({
       showProgress: true,
@@ -103,31 +104,37 @@ export class VideoExporter {
     });
 
     let prefixTs = 0;
-    let videoTrackIndex = 0;
+    let videoBoxIndex = 0;
     let furthestDecodingVideoChunk: EncodedVideoChunk | null = null;
 
-    while (videoTrackIndex < this.videoTrackBuffers.length) {
-      const buffer = this.videoTrackBuffers[videoTrackIndex];
-      const range = buffer.getRange();
+    while (videoBoxIndex < this.videoBoxes.length) {
+      const videoBox = this.videoBoxes[videoBoxIndex];
+      const range = videoBox.getRange();
 
       let decodingChunks;
 
       if (!furthestDecodingVideoChunk) {
-        this.decoder.configure(buffer.getCodecConfig());
-        decodingChunks = buffer.getVideoChunksDependencies(0);
+        decodingChunks = videoBox.getVideoChunksDependencies(0);
       } else {
-        decodingChunks = buffer.getNextVideoChunks(
+        decodingChunks = videoBox.getNextVideoChunks(
           furthestDecodingVideoChunk,
           QUEUE_WINDOW,
         );
       }
 
       if (!decodingChunks) {
-        videoTrackIndex += 1;
-        prefixTs += buffer.getDuration();
+        videoBoxIndex += 1;
+        prefixTs += videoBox.getDurationInS();
         furthestDecodingVideoChunk = null;
       } else {
-        decodingChunks.forEach((chunk) => {
+        const { chunks, codecConfig } = decodingChunks;
+
+        if (this.videoDecoderConfig !== codecConfig) {
+          this.decoder.configure(codecConfig);
+          this.videoDecoderConfig = codecConfig;
+        }
+
+        chunks.forEach((chunk) => {
           let timestamp;
 
           if (
@@ -149,7 +156,7 @@ export class VideoExporter {
           this.decoder.decode(updatedChunk);
         });
 
-        furthestDecodingVideoChunk = decodingChunks[decodingChunks.length - 1];
+        furthestDecodingVideoChunk = chunks[chunks.length - 1];
 
         while (this.encodingNums >= MIN_QUEUE_THRESHOLD) {
           await sleep(16);
@@ -182,21 +189,25 @@ export class VideoExporter {
     this.nextKeyframeTs = 0;
     this.encodedNums = 0;
     this.encodingNums = 0;
+    this.videoDecoderConfig = null;
   };
 
-  private extractEncodingFramesNum = (buffers: VideoTrackBuffer[]) => {
+  private extractEncodingFramesNum = (boxes: VideoBox[]) => {
     let framesNum = 0;
 
-    buffers.forEach((buffer) => {
-      const range = buffer.getRange();
-      buffer.getVideoChunksGroups().forEach((group) => {
-        group.videoChunks.forEach((chunk) => {
-          if (
-            chunk.timestamp >= range.start * 1e6 &&
-            chunk.timestamp < range.end * 1e6
-          ) {
-            framesNum += 1;
-          }
+    boxes.forEach((box) => {
+      const range = box.getRange();
+
+      box.getVideoTrackBuffers().forEach((buffer) => {
+        buffer.getVideoChunksGroups().forEach((group) => {
+          group.videoChunks.forEach((chunk) => {
+            if (
+              chunk.timestamp >= range.start * 1e6 &&
+              chunk.timestamp < range.end * 1e6
+            ) {
+              framesNum += 1;
+            }
+          });
         });
       });
     });
@@ -210,9 +221,9 @@ export class VideoExporter {
       return;
     }
 
-    const videoTrack = this.getActiveVideoTrackAt(frame.timestamp / 1e6);
+    const videoBox = this.getActiveVideoBoxAt(frame.timestamp / 1e6);
 
-    if (!videoTrack) {
+    if (!videoBox) {
       throw new Error(
         "Internal error: videoTrack for decoded frame must present",
       );
@@ -220,7 +231,7 @@ export class VideoExporter {
 
     const processedFrame = this.frameChanger.processFrame(
       frame,
-      videoTrack.getEffects(),
+      videoBox.getEffects(),
     );
 
     frame.close();
@@ -268,21 +279,21 @@ export class VideoExporter {
     });
   };
 
-  private getActiveVideoTrackAt(timeInS: number) {
-    let trackBuffer: VideoTrackBuffer | null = null;
+  private getActiveVideoBoxAt(timeInS: number) {
+    let videoBox: VideoBox | null = null;
     let prefixTimestamp = 0;
 
-    for (let i = 0; i < this.videoTrackBuffers.length; i++) {
+    for (let i = 0; i < this.videoBoxes.length; i++) {
       if (
         prefixTimestamp <= timeInS &&
-        timeInS <= this.videoTrackBuffers[i].getDuration() + prefixTimestamp
+        timeInS <= this.videoBoxes[i].getDurationInS() + prefixTimestamp
       ) {
-        trackBuffer = this.videoTrackBuffers[i];
+        videoBox = this.videoBoxes[i];
         break;
       }
-      prefixTimestamp += this.videoTrackBuffers[i].getDuration();
+      prefixTimestamp += this.videoBoxes[i].getDurationInS();
     }
 
-    return trackBuffer;
+    return videoBox;
   }
 }

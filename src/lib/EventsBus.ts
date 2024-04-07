@@ -1,9 +1,9 @@
 interface BusEvents {
   currentTime: number;
   totalDuration: number;
-  modifiedVideoTrackId: number;
-  deletedVideoTrackId: number;
-  splittedVideoTrack: {
+  modifiedVideoBoxId: number;
+  deletedVideoBoxId: number;
+  splittedVideoBox: {
     id: number;
     atTime: number;
   };
@@ -18,9 +18,9 @@ class EventsBus {
   } = {
     currentTime: [],
     totalDuration: [],
-    modifiedVideoTrackId: [],
-    deletedVideoTrackId: [],
-    splittedVideoTrack: [],
+    modifiedVideoBoxId: [],
+    deletedVideoBoxId: [],
+    splittedVideoBox: [],
   };
 
   subscribe = <T extends EventKey>(

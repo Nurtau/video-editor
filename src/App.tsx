@@ -1,6 +1,6 @@
 import "./globalStyles.css";
 
-import { ActiveTrackProvider } from "./components/molecules";
+import { ActiveVideoBoxProvider } from "./components/molecules";
 import {
   VideoBoxesProvider,
   VideoSettingsProvider,
@@ -11,9 +11,9 @@ function App() {
   return (
     <VideoBoxesProvider>
       <VideoSettingsProvider>
-        <ActiveTrackProvider>
+        <ActiveVideoBoxProvider>
           <VideoEditor />
-        </ActiveTrackProvider>
+        </ActiveVideoBoxProvider>
       </VideoSettingsProvider>
     </VideoBoxesProvider>
   );
