@@ -124,7 +124,6 @@ export const VideoEditor = () => {
                 <VideoUploadSection
                   onMoveToTimeline={(box) => {
                     setVideoBoxes((curBoxes) => {
-                      console.log(box);
                       return [...curBoxes, box.copy()];
                     });
                     setAudioTrackBuffers((buffers) => {

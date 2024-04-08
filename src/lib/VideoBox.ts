@@ -89,6 +89,7 @@ export class VideoBox {
 
   getVideoChunksDependencies = (timeInS: number) => {
     const timeInMicros = Math.floor((this.range.start + timeInS) * 1e6);
+
     if (timeInMicros > this.range.end * 1e6) return null;
 
     let prefixTsInMicros = 0;
@@ -107,7 +108,7 @@ export class VideoBox {
     if (!containingTrack) return null;
 
     const deps = containingTrack.getVideoChunksDependencies(
-      timeInS - prefixTsInMicros / 1e6,
+      (timeInMicros - prefixTsInMicros) / 1e6,
     );
 
     if (!deps) return null;

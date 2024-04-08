@@ -78,11 +78,11 @@ export class VideoController {
   }
 
   setVideoBoxes = (videoBoxes: VideoBox[]) => {
-    const nextBoxIds = new Set(videoBoxes.map((track) => track.id));
+    const nextBoxIds = new Set(videoBoxes.map((box) => box.id));
     let boxWasDeleted = false;
 
-    this.videoBoxes.forEach((buffer) => {
-      if (!nextBoxIds.has(buffer.id)) {
+    this.videoBoxes.forEach((box) => {
+      if (!nextBoxIds.has(box.id)) {
         boxWasDeleted = true;
       }
     });
@@ -263,8 +263,6 @@ export class VideoController {
         this.furthestDecodingVideoChunk!,
         availableSpace,
       );
-
-      console.log(nextVideoChunks);
 
       if (!nextVideoChunks || nextVideoChunks.chunks.length === 0) {
         this.frameDecoder.flush();
