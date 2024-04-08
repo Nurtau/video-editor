@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
-import { AudioTrackBuffer } from "./lib/AudioTrackBuffer";
 import { VideoBox } from "./lib/VideoBox";
 import { VideoController } from "./lib/VideoController";
 import { eventsBus } from "./lib/EventsBus";
@@ -25,9 +24,6 @@ type SidebarKey =
 export const VideoEditor = () => {
   const { settings } = useVideoSettings();
   const [videoBoxes, setVideoBoxes] = useState<VideoBox[]>([]);
-  const [audioTrackBuffers, setAudioTrackBuffers] = useState<
-    AudioTrackBuffer[]
-  >([]);
 
   const [{ playing }, setControllerState] = useState(
     VideoController.buildDefaultState(),
@@ -98,10 +94,6 @@ export const VideoEditor = () => {
     controller.setVideoBoxes(videoBoxes);
   }, [videoBoxes]);
 
-  useEffect(() => {
-    controller.setAudioTrackBuffers(audioTrackBuffers);
-  }, [audioTrackBuffers]);
-
   useHotkeys("right", () => controller.playForward(), []);
   useHotkeys("left", () => controller.playBackward(), []);
   useHotkeys(
@@ -125,13 +117,6 @@ export const VideoEditor = () => {
                   onMoveToTimeline={(box) => {
                     setVideoBoxes((curBoxes) => {
                       return [...curBoxes, box.copy()];
-                    });
-                    setAudioTrackBuffers((buffers) => {
-                      // @NOW: should be handled inside VideoBox, not seperate
-                      const newBuffers = box
-                        .getAudioTrackBuffers()
-                        .map((buffer) => buffer);
-                      return [...buffers, ...newBuffers];
                     });
                   }}
                 />

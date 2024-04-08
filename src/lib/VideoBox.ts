@@ -163,6 +163,79 @@ export class VideoBox {
     };
   };
 
+  getAudioChunksDependencies = (timeInS: number) => {
+    const timeInMicros = Math.floor((this.range.start + timeInS) * 1e6);
+
+    if (timeInMicros > this.range.end * 1e6) return null;
+
+    let prefixTsInMicros = 0;
+
+    const containingTrack = this.audioTrackBuffers.find((track) => {
+      const trackDurationInMicros = track.getDurationInS() * 1e6;
+
+      if (timeInMicros < prefixTsInMicros + trackDurationInMicros) {
+        return true;
+      } else {
+        prefixTsInMicros += trackDurationInMicros;
+        return false;
+      }
+    });
+
+    if (!containingTrack) return null;
+
+    const deps = containingTrack.getAudioChunksDependencies(
+      (timeInMicros - prefixTsInMicros) / 1e6,
+    );
+
+    if (!deps) return null;
+
+    return {
+      codecConfig: containingTrack.getCodecConfig(),
+      chunks: deps,
+    };
+  };
+
+  getNextAudioChunks = (audioChunk: EncodedAudioChunk, maxAmount: number) => {
+    const containingTrack = this.audioTrackBuffers.find((track) => {
+      return track.hasFrame(audioChunk);
+    });
+
+    if (!containingTrack) return null;
+
+    const containingTrackIndex =
+      this.audioTrackBuffers.indexOf(containingTrack);
+
+    /*
+    const prefixTsInS = this.videoTrackBuffers
+      .slice(0, containingTrackIndex)
+      .reduce((acc, track) => acc + track.getDurationInS(), 0);
+    */
+
+    let nextAudioChunks = containingTrack.getNextAudioChunks(
+      audioChunk,
+      maxAmount,
+      this.range.end,
+    );
+
+    let codecConfig = containingTrack.getCodecConfig();
+
+    if (
+      !nextAudioChunks &&
+      containingTrackIndex + 1 < this.audioTrackBuffers.length
+    ) {
+      const nextTrack = this.audioTrackBuffers[containingTrackIndex + 1];
+      nextAudioChunks = nextTrack.getAudioChunksDependencies(0);
+      codecConfig = nextTrack.getCodecConfig();
+    }
+
+    if (!nextAudioChunks) return null;
+
+    return {
+      codecConfig,
+      chunks: nextAudioChunks,
+    };
+  };
+
   getVideoTrackBuffers = () => {
     return this.videoTrackBuffers;
   };
