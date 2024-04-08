@@ -19,6 +19,10 @@ export const trackBoxStyles = recipe({
         outlineOffset: -1,
         outline: `1px solid ${tokens.colors["bright-blue"]}`,
       },
+      false: {
+        outlineOffset: -1,
+        outline: `1px solid ${tokens.colors["white25"]}`,
+      },
     },
   },
 });

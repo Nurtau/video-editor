@@ -11,6 +11,8 @@ import {
   controlsBoxStyles,
   videosListStyles,
   titleStyles,
+  boxBorderStyles,
+  contentLabelStyles,
 } from "./VideoUploadSection.css";
 
 interface VideoUploadSectionProps {
@@ -45,17 +47,25 @@ export const VideoUploadSection = ({
     <div className={uploadSectionBoxStyles}>
       <div className={videosBoxStyles}>
         <h3 className={titleStyles}>Uploaded videos</h3>
-        <div className={videosListStyles}>
-          {videoBoxes.map((box) => (
-            <VideoBoxItem
-              key={box.id}
-              box={box}
-              onSelect={() => setSelectedBox(box)}
-              isChosen={selectedBox?.id === box.id}
-              onFrame={(frame) => updateBoxFrame(frame, box.id)}
-            />
-          ))}
-        </div>
+        {videoBoxes.length === 0 ? (
+          <div className={boxBorderStyles}>
+            <div className={contentLabelStyles}>
+              To proceed with editing, please upload the video first
+            </div>
+          </div>
+        ) : (
+          <div className={videosListStyles}>
+            {videoBoxes.map((box) => (
+              <VideoBoxItem
+                key={box.id}
+                box={box}
+                onSelect={() => setSelectedBox(box)}
+                isChosen={selectedBox?.id === box.id}
+                onFrame={(frame) => updateBoxFrame(frame, box.id)}
+              />
+            ))}
+          </div>
+        )}
       </div>
       <div className={controlsBoxStyles}>
         <FileUploadButton variant="primary" onUpload={readFile}>

@@ -15,6 +15,8 @@ import {
   slidersBoxStyles,
   activeTrackBoxStyles,
   resetButtonBoxStyles,
+  contentLabelStyles,
+  boxBorderStyles,
 } from "./VideoEffectsSection.css";
 
 export const VideoEffectsSection = () => {
@@ -23,6 +25,13 @@ export const VideoEffectsSection = () => {
   return (
     <div className={sectionBoxStyles}>
       <h3 className={titleStyles}>Video effects</h3>
+      {!activeTrack && (
+        <div className={boxBorderStyles}>
+          <div className={contentLabelStyles}>
+            To apply the video effects, please select the video track first
+          </div>
+        </div>
+      )}
       {activeTrack && <ActiveTrackManipulation track={activeTrack} />}
     </div>
   );

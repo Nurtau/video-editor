@@ -36,3 +36,20 @@ export const resetButtonBoxStyles = style({
   display: "flex",
   justifyContent: "center",
 });
+
+export const contentLabelStyles = style({
+  color: tokens.colors["white50"],
+  fontSize: "14px",
+  lineHeight: 1.6,
+  textAlign: "center",
+});
+
+export const boxBorderStyles = style({
+  borderRadius: tokens.borderRadiuses["2.5"],
+  height: "100%",
+  border: `dashed 2px ${tokens.colors["secondary-border"]}`,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 32,
+});
