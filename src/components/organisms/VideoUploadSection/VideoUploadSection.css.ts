@@ -37,5 +37,21 @@ export const controlsBoxStyles = style({
   backgroundColor: tokens.colors["tertiary-bg"],
   display: "flex",
   gap: tokens.spacings["5"],
-  //boxShadow: "0 -2px 20px rgba(0, 0, 0, 0.5)",
+});
+
+export const contentLabelStyles = style({
+  color: tokens.colors["white50"],
+  fontSize: "14px",
+  lineHeight: 1.6,
+  textAlign: "center",
+});
+
+export const boxBorderStyles = style({
+  borderRadius: tokens.borderRadiuses["2.5"],
+  height: "100%",
+  border: `dashed 2px ${tokens.colors["secondary-border"]}`,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 32,
 });
