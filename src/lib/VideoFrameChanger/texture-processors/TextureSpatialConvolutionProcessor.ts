@@ -24,7 +24,7 @@ void main() {
   vec4 sum = vec4(0.0);
   float totalWeight = 0.0;
 
-  float step = u_blur > 10.0 ? round(u_blur / 10.0) : 1.0;
+  float step = u_blur > 5.0 ? round(u_blur / 5.0) : 1.0;
 
   for (float x = -u_blur; x <= u_blur; x+=step) {
     for (float y = -u_blur; y <= u_blur; y+=step) {

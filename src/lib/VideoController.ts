@@ -391,6 +391,7 @@ export class VideoController {
         videoBox.getAudioChunksDependencies(dependenciesAtTs);
 
       if (audioChunksDependencies === null) {
+        this.activeBoxForAudio = this.getNextActiveVideoBox(videoBox);
         return;
       }
 
@@ -402,7 +403,6 @@ export class VideoController {
       );
     }
 
-    // Decode next frames in advance
     while (
       this.decodingAudioChunks.length + this.audioDataQueue.length <
       decodeQueueLwm
