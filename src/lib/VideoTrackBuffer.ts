@@ -1,8 +1,6 @@
 import { type MP4Sample } from "mp4box";
 import { VideoHelpers } from "./VideoHelpers";
 
-import { generateId } from "./helpers";
-
 interface VideoChunksGroup {
   start: number;
   end: number;
@@ -17,8 +15,6 @@ interface VideoTrackBufferProps {
 export class VideoTrackBuffer {
   private videoChunksGroups: VideoChunksGroup[] = [];
   private codecConfig: VideoDecoderConfig;
-
-  public id = generateId();
 
   constructor(props: VideoTrackBufferProps) {
     const { samples, videoDecoderConfig } = props;

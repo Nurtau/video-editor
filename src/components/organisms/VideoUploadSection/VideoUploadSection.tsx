@@ -59,7 +59,7 @@ export const VideoUploadSection = ({
             {videoBoxes.map((box) => (
               <VideoBoxItem
                 key={box.innerBox.id}
-                box={box}
+                item={box}
                 onSelect={() => setSelectedBox(box)}
                 isChosen={selectedBox?.innerBox.id === box.innerBox.id}
                 onFrame={(frame) => updateBoxFrame(frame, box.innerBox.id)}

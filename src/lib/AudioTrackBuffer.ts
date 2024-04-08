@@ -1,7 +1,6 @@
 import { type MP4Sample, type MP4AudioTrack } from "mp4box";
 
 import { VideoHelpers } from "./VideoHelpers";
-import { generateId } from "~/lib/helpers";
 
 export interface AudioDecodeQueue {
   frames: EncodedAudioChunk[];
@@ -12,8 +11,6 @@ export class AudioTrackBuffer {
   private audioChunks: EncodedAudioChunk[] = [];
   private codecConfig: AudioDecoderConfig;
   private durationInS: number;
-
-  public id = generateId();
 
   constructor(
     track: MP4AudioTrack,
