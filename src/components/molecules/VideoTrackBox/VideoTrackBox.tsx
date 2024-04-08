@@ -6,12 +6,12 @@ import {
   type MouseEvent,
 } from "react";
 
-import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
+import { type VideoBox } from "~/lib/VideoBox";
 import { VideoTrackController } from "~/lib/VideoTrackController";
 import { SliderControlType } from "~/types";
 import { eventsBus } from "~/lib/EventsBus";
 
-import { useActiveTrack } from "../ActiveTrackProvider";
+import { useActiveVideoBox } from "../ActiveVideoBoxProvider";
 import { Z_INDEXES } from "~/constants";
 import { OverlayButton } from "~/components/atoms";
 
@@ -72,13 +72,13 @@ const CONTROL_CURSOR: Record<SliderControlType, CSSProperties["cursor"]> = {
 
 interface VideoTrackBoxProps {
   timeToPx: number;
-  buffer: VideoTrackBuffer;
+  box: VideoBox;
   controlType: SliderControlType;
 }
 
 export const VideoTrackBox = ({
   timeToPx,
-  buffer,
+  box,
   controlType,
 }: VideoTrackBoxProps) => {
   const [{ videoFrames }, setVideoTrackState] = useState(
@@ -88,36 +88,36 @@ export const VideoTrackBox = ({
     () => new VideoTrackController({ onEmit: setVideoTrackState }),
   );
 
-  const { activeTrack, setActiveTrack } = useActiveTrack();
+  const { activeVideoBox, setActiveVideoBox } = useActiveVideoBox();
 
   useEffect(() => {
-    trackPreviewer.setVideoTrackBuffer(buffer);
+    trackPreviewer.setVideoBox(box);
     return trackPreviewer.reset;
-  }, [buffer.id]);
+  }, [box.id]);
 
-  const trackBoxWidth = buffer.getDuration() * timeToPx;
-  const rangeStart = buffer.getRange().start;
+  const trackBoxWidth = box.getDurationInS() * timeToPx;
+  const rangeStart = box.getRange().start;
   const previewFrames = videoFrames
     ? findPreviewFrames(videoFrames, timeToPx, trackBoxWidth, rangeStart)
     : [];
 
   const selectOrDelete = () => {
     if (controlType === "default") {
-      setActiveTrack(buffer);
+      setActiveVideoBox(box);
     } else if (controlType === "delete") {
-      eventsBus.dispatch("deletedVideoTrackId", buffer.id);
+      eventsBus.dispatch("deletedVideoBoxId", box.id);
     }
   };
 
   return (
     <div
       className={trackBoxStyles({
-        active: buffer.id === activeTrack?.id,
+        active: box.id === activeVideoBox?.id,
       })}
       style={{ width: trackBoxWidth, height: PREVIEW_DIMENSIONS.HEIGHT }}
     >
       {controlType === "trim" && (
-        <TrimHandler trackId={buffer.id} timeToPx={timeToPx} />
+        <TrimHandler trackId={box.id} timeToPx={timeToPx} />
       )}
       {controlType !== "trim" && (
         <OverlayButton
@@ -208,7 +208,7 @@ const TrimHandler = ({ timeToPx, trackId }: TrimHandlerProps) => {
   const onClick = (event: MouseEvent) => {
     const position = extractPosition(event);
     const time = position / timeToPx;
-    eventsBus.dispatch("splittedVideoTrack", {
+    eventsBus.dispatch("splittedVideoBox", {
       id: trackId,
       atTime: time,
     });

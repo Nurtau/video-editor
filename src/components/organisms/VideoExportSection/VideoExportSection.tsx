@@ -4,7 +4,7 @@ import "react-circular-progressbar/dist/styles.css";
 
 import { Button } from "~/components/atoms";
 import { VideoExporter } from "~/lib/VideoExporter";
-import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
+import { type VideoBox } from "~/lib/VideoBox";
 import { useVideoSettings } from "../VideoSettingsSection";
 
 import {
@@ -14,8 +14,8 @@ import {
   contentLabelStyles,
   resolutionStyles,
   ratioStyles,
-  exportButtonBoxStyles,
   overlayBoxStyles,
+  exportButtonBoxStyles,
   exportingCenterBoxStyles,
   exportingCenterTitleStyles,
   exportingButtonBoxStyles,
@@ -24,12 +24,12 @@ import { tokens } from "~/ui-tokens";
 
 interface VideoExportSectionProps {
   onExportStart(): void;
-  videoTrackBuffers: VideoTrackBuffer[];
+  videoBoxes: VideoBox[];
 }
 
 export const VideoExportSection = ({
   onExportStart,
-  videoTrackBuffers,
+  videoBoxes,
 }: VideoExportSectionProps) => {
   const { settings } = useVideoSettings();
 
@@ -63,12 +63,12 @@ export const VideoExportSection = ({
                 const [width, height] = settings.resolution
                   .split("x")
                   .map(Number);
-                exporterService.exportVideo(videoTrackBuffers, {
+                exporterService.exportVideo(videoBoxes, {
                   width,
                   height,
                 });
               }}
-              disabled={videoTrackBuffers.length === 0}
+              disabled={videoBoxes.length === 0}
             >
               Export
             </Button>

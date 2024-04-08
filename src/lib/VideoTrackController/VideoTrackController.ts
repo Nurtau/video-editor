@@ -1,7 +1,12 @@
 import { VideoTrackDecoder } from "./VideoTrackDecoder";
-import { type VideoTrackBuffer } from "../VideoTrackBuffer";
+import { type VideoBox } from "../VideoBox";
 
 const MAX_TRACK_FRAMES = 20;
+
+interface VideoKeyFrame {
+  chunk: EncodedVideoChunk;
+  codecConfig: VideoDecoderConfig;
+}
 
 interface VideoTrackControllerState {
   videoFrames: VideoFrame[] | null;
@@ -27,23 +32,29 @@ export class VideoTrackController {
     this.trackDecoder = new VideoTrackDecoder();
   }
 
-  setVideoTrackBuffer = async (videoTrackBuffer: VideoTrackBuffer) => {
+  setVideoBox = async (videoBox: VideoBox) => {
     this.reset();
 
-    const range = videoTrackBuffer.getRange();
+    const range = videoBox.getRange();
 
-    const videoChunkGroups = videoTrackBuffer.getVideoChunksGroups();
-    const videoAllKeyFrames = videoChunkGroups.map(
-      (group) => group.videoChunks[0],
-    );
+    const videoAllKeyFrames: VideoKeyFrame[] = [];
 
-    const videoKeyFrames = videoAllKeyFrames.filter((chunk) => {
+    videoBox.getVideoTrackBuffers().forEach((buffer) => {
+      buffer.getVideoChunksGroups().forEach((group) => {
+        videoAllKeyFrames.push({
+          chunk: group.videoChunks[0],
+          codecConfig: buffer.getCodecConfig(),
+        });
+      });
+    });
+
+    const videoKeyFrames = videoAllKeyFrames.filter(({ chunk }) => {
       const timestampInS = chunk.timestamp / 1e6;
       return range.start <= timestampInS && timestampInS <= range.end;
     });
 
     if (videoKeyFrames.length === 0) {
-      let closestFrame: EncodedVideoChunk | null = null;
+      let closestFrame: VideoKeyFrame | null = null;
 
       videoAllKeyFrames.forEach((keyFrame) => {
         if (!closestFrame) {
@@ -51,8 +62,8 @@ export class VideoTrackController {
         } else {
           const midTrack = (range.start + range.end) / 2;
           if (
-            Math.abs(keyFrame.timestamp / 1e6 - midTrack) <
-            Math.abs(closestFrame.timestamp / 1e6 - midTrack)
+            Math.abs(keyFrame.chunk.timestamp / 1e6 - midTrack) <
+            Math.abs(closestFrame.chunk.timestamp / 1e6 - midTrack)
           ) {
             closestFrame = keyFrame;
           }
@@ -87,10 +98,10 @@ export class VideoTrackController {
 
     const videoFrames: VideoFrame[] = [];
 
-    for (const frame of shortenedKeyFrames) {
+    for (const { chunk, codecConfig } of shortenedKeyFrames) {
       const decodedFrames = await this.trackDecoder.decode(
-        [frame],
-        videoTrackBuffer.getCodecConfig(),
+        [chunk],
+        codecConfig,
       );
       videoFrames.push(...decodedFrames);
     }

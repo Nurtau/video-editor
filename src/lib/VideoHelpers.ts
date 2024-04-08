@@ -39,6 +39,21 @@ const recreateVideoChunk = (
   });
 };
 
+const recreateAudioChunk = (
+  chunk: EncodedAudioChunk,
+  { timestamp }: { timestamp: number },
+) => {
+  const buffer = new Uint8Array(chunk.byteLength);
+  chunk.copyTo(buffer);
+
+  return new EncodedAudioChunk({
+    type: chunk.type,
+    duration: chunk.duration ?? undefined,
+    timestamp,
+    data: buffer,
+  });
+};
+
 const clampTime = (time: number, maxTime: number) => {
   if (time < 0) return 0;
   if (time > maxTime) return maxTime;
@@ -85,6 +100,7 @@ export const VideoHelpers = {
   isChunkInTime,
   formatTime,
   recreateVideoChunk,
+  recreateAudioChunk,
   clampTime,
   isFrameTimestampEqual,
   getFrameTolerance,

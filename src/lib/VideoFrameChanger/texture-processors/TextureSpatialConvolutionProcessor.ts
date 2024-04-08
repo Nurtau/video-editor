@@ -1,7 +1,7 @@
 import { TextureAbstractProcessor } from "./TextureAbstractProcessor";
-import { VideoEffects } from "../../VideoTrackBuffer";
+import { VideoBoxEffects } from "../../VideoBox";
 
-type SpatialConvolutionEffects = Pick<VideoEffects, "blur">;
+type SpatialConvolutionEffects = Pick<VideoBoxEffects, "blur">;
 
 const spatialConvolutionFragmentSource = `#version 300 es
 precision highp float;

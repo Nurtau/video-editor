@@ -1,8 +1,8 @@
 import { TextureAbstractProcessor } from "./TextureAbstractProcessor";
-import { VideoEffects } from "../../VideoTrackBuffer";
+import { VideoBoxEffects } from "../../VideoBox";
 
 type PerPixelEffects = Pick<
-  VideoEffects,
+  VideoBoxEffects,
   "opacity" | "brigthness" | "saturation" | "hue"
 >;
 

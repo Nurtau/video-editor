@@ -1,9 +1,10 @@
 import { useState } from "react";
 
 import { Button, FileUploadButton, useFileReader } from "~/components/atoms";
-import { VideoBoxDemuxer, type VideoBox } from "~/lib/VideoBoxDemuxer";
+import { VideoBoxDemuxer } from "~/lib/VideoBoxDemuxer";
+import { VideoBox } from "~/lib/VideoBox";
 
-import { VideoBoxItem, type ExtendedVideoBox } from "./VideoBoxItem";
+import { VideoBoxItem, type VideoUploadBox } from "./VideoBoxItem";
 import { useVideoBoxes } from "./useVideoBoxes";
 import {
   uploadSectionBoxStyles,
@@ -23,18 +24,18 @@ export const VideoUploadSection = ({
   onMoveToTimeline,
 }: VideoUploadSectionProps) => {
   const { videoBoxes, setVideoBoxes } = useVideoBoxes();
-  const [selectedBox, setSelectedBox] = useState<ExtendedVideoBox | null>(null);
+  const [selectedBox, setSelectedBox] = useState<VideoUploadBox | null>(null);
 
   const { readFile } = useFileReader({
     onOutput: async (name, data) => {
       const box = await VideoBoxDemuxer.processBuffer(data);
-      setVideoBoxes([...videoBoxes, { ...box, name }]);
+      setVideoBoxes([...videoBoxes, { innerBox: box, name }]);
     },
   });
 
   const updateBoxFrame = (frame: VideoFrame, boxId: number) => {
     const nextVideoBoxes = videoBoxes.map((box) => {
-      if (box.id !== boxId) return box;
+      if (box.innerBox.id !== boxId) return box;
       return {
         ...box,
         frame,
@@ -57,11 +58,11 @@ export const VideoUploadSection = ({
           <div className={videosListStyles}>
             {videoBoxes.map((box) => (
               <VideoBoxItem
-                key={box.id}
-                box={box}
+                key={box.innerBox.id}
+                item={box}
                 onSelect={() => setSelectedBox(box)}
-                isChosen={selectedBox?.id === box.id}
-                onFrame={(frame) => updateBoxFrame(frame, box.id)}
+                isChosen={selectedBox?.innerBox.id === box.innerBox.id}
+                onFrame={(frame) => updateBoxFrame(frame, box.innerBox.id)}
               />
             ))}
           </div>
@@ -75,7 +76,7 @@ export const VideoUploadSection = ({
           variant="secondary"
           onClick={() => {
             if (selectedBox) {
-              onMoveToTimeline(selectedBox);
+              onMoveToTimeline(selectedBox.innerBox);
             }
           }}
           disabled={selectedBox === null}

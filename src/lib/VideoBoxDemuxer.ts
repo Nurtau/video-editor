@@ -10,7 +10,7 @@ import { AudioDataDecoder } from "./AudioDataDecoder";
 import { AudioTrackBuffer } from "./AudioTrackBuffer";
 import { VideoFrameDecoder } from "./VideoFrameDecoder";
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
-import { generateId } from "./helpers";
+import { VideoBox } from "./VideoBox";
 
 const extractSamples = (mp4File: MP4File, trackId: number) => {
   return new Promise<MP4Sample[]>((resolve) => {
@@ -23,12 +23,6 @@ const extractSamples = (mp4File: MP4File, trackId: number) => {
     mp4File.start();
   });
 };
-
-export interface VideoBox {
-  id: number;
-  videoTrackBuffers: VideoTrackBuffer[];
-  audioTrackBuffers: AudioTrackBuffer[];
-}
 
 const processBuffer = async (buffer: ArrayBuffer): Promise<VideoBox> => {
   const mp4File = createFile();
@@ -63,11 +57,7 @@ const processBuffer = async (buffer: ArrayBuffer): Promise<VideoBox> => {
     audioTrackBuffers.push(trackBuffer);
   }
 
-  return {
-    audioTrackBuffers,
-    videoTrackBuffers,
-    id: generateId(),
-  };
+  return new VideoBox({ videoTrackBuffers, audioTrackBuffers });
 };
 
 export const VideoBoxDemuxer = {

@@ -1,7 +1,7 @@
 import { useState, type MouseEvent } from "react";
 
 import { TIMELINE_PADDING } from "~/constants";
-import { type VideoTrackBuffer } from "~/lib/VideoTrackBuffer";
+import { type VideoBox } from "~/lib/VideoBox";
 import { TimelineTicks, SliderThumb } from "~/components/molecules";
 import { IconButton, OverlayButton, type IconName } from "~/components/atoms";
 import { SliderControlType } from "~/types";
@@ -21,7 +21,7 @@ const MIN_TIME_TO_PX = 1;
 const MAX_TIME_TO_PX = 512;
 
 interface PlayerSliderProps {
-  videoTrackBuffers: VideoTrackBuffer[];
+  videoBoxes: VideoBox[];
   seek(time: number): void;
 }
 
@@ -45,10 +45,7 @@ const CONTROL_ITEMS: ControlItem[] = [
   },
 ];
 
-export const PlayerTimeline = ({
-  videoTrackBuffers,
-  seek,
-}: PlayerSliderProps) => {
+export const PlayerTimeline = ({ videoBoxes, seek }: PlayerSliderProps) => {
   const [activeControlType, setActiveControlType] =
     useState<SliderControlType>("default");
   const [timeToPx, setTimeToPx] = useState(32);
@@ -119,7 +116,7 @@ export const PlayerTimeline = ({
             />
           )}
           <PlayerSlider
-            videoTrackBuffers={videoTrackBuffers}
+            videoBoxes={videoBoxes}
             timeToPx={timeToPx}
             controlType={activeControlType}
           />
