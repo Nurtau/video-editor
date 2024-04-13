@@ -1,12 +1,11 @@
-import type { AudioTrackInfo, Box, MP4aBox, TrakBox } from "mp4box";
+import type { AudioTrackInfo, TrakBox } from "mp4box";
 
-function isMp4aEntry(entry: Box): entry is MP4aBox {
-  return entry.type === "mp4a";
-}
+import { VideoHelpers } from "./VideoHelpers";
 
 function getAudioSpecificConfig(trak: TrakBox): Uint8Array | undefined {
-  const descriptor =
-    trak.mdia.minf.stbl.stsd.entries.find(isMp4aEntry)?.esds.esd.descs[0];
+  const descriptor = trak.mdia.minf.stbl.stsd.entries.find(
+    VideoHelpers.isMp4aEntry,
+  )?.esds.esd.descs[0];
   if (!descriptor) {
     return undefined;
   }
@@ -47,6 +46,10 @@ export class AudioDataDecoder {
     }
 
     this.decoder.decode(audioChunk);
+  };
+
+  flush = () => {
+    this.decoder.flush();
   };
 
   reset = () => {

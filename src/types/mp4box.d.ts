@@ -156,5 +156,9 @@ declare module "mp4box" {
   export type MP4aBox = any;
   export type TrakBox = any;
 
+  export const BoxParser: any;
+  export const ISOFile: any;
+  export const MP4BoxStream: any;
+
   export {};
 }

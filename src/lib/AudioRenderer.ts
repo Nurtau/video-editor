@@ -20,6 +20,7 @@ export class AudioRenderer {
   process(frames: AudioData[], currentTimeInMicros: number) {
     const firstFrame = frames[0];
     this.audioContext ??= this.initializeAudio(firstFrame.sampleRate);
+
     const firstTimestamp = firstFrame.timestamp;
 
     // Create an AudioBuffer containing all frame data
@@ -43,6 +44,7 @@ export class AudioRenderer {
         offset += size;
       }
     }
+
     // Schedule an AudioBufferSourceNode to play the AudioBuffer
     this.scheduleAudioBuffer(audioBuffer, firstTimestamp, currentTimeInMicros);
   }

@@ -22,8 +22,6 @@ interface VideoBoxProps {
   audioTrackBuffers: AudioTrackBuffer[];
 }
 
-// @NOW: prefix timestamp should added to each chunk, but due to reference check: there is no easy way
-
 export class VideoBox {
   public id = generateId();
 
@@ -49,8 +47,9 @@ export class VideoBox {
       this.range = props.getRange();
       this.effects = props.getEffects();
     } else {
-      this.videoTrackBuffers = props.videoTrackBuffers;
-      this.audioTrackBuffers = props.audioTrackBuffers;
+      // we take at maximum only one track as primary
+      this.videoTrackBuffers = props.videoTrackBuffers.slice(0, 1);
+      this.audioTrackBuffers = props.audioTrackBuffers.slice(0, 1);
       this.effects = VideoBox.getDefaultEffects();
 
       const maxDuration = props.videoTrackBuffers.reduce(
@@ -204,12 +203,6 @@ export class VideoBox {
 
     const containingTrackIndex =
       this.audioTrackBuffers.indexOf(containingTrack);
-
-    /*
-    const prefixTsInS = this.videoTrackBuffers
-      .slice(0, containingTrackIndex)
-      .reduce((acc, track) => acc + track.getDurationInS(), 0);
-    */
 
     let nextAudioChunks = containingTrack.getNextAudioChunks(
       audioChunk,

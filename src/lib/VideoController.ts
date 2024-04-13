@@ -346,16 +346,8 @@ export class VideoController {
   }
 
   private onDecodedAudioData = (frame: AudioData) => {
-    const decodingFrameIndex = this.decodingAudioChunks.findIndex((x) =>
-      VideoHelpers.isFrameTimestampEqual(x, frame),
-    );
-    if (decodingFrameIndex < 0) {
-      // Drop frames that are no longer in the decode queue.
-      frame.close();
-      return;
-    }
+    this.decodingAudioChunks.shift();
 
-    VideoHelpers.arrayRemoveAt(this.decodingAudioChunks, decodingFrameIndex);
     const currentTimeInMicros = Math.floor(1e6 * this.currentTimeInS);
 
     if (frame.timestamp + frame.duration! <= currentTimeInMicros) {
@@ -414,6 +406,7 @@ export class VideoController {
       );
 
       if (nextAudioChunks === null) {
+        this.audioDataDecoder.flush();
         const nextVideoBox = this.getNextActiveVideoBox(videoBox);
 
         if (nextVideoBox) {

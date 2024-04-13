@@ -11,14 +11,17 @@ export class AudioTrackBuffer {
   private audioChunks: EncodedAudioChunk[] = [];
   private codecConfig: AudioDecoderConfig;
   private durationInS: number;
+  private mp4aBox: any;
 
   constructor(
     track: MP4AudioTrack,
     samples: MP4Sample[],
     audioDecoderConfig: AudioDecoderConfig,
+    mp4aBox: any,
   ) {
     this.durationInS = track.duration / track.timescale;
     this.codecConfig = audioDecoderConfig;
+    this.mp4aBox = mp4aBox;
 
     this.audioChunks = samples.map((sample) => {
       return new EncodedAudioChunk({
@@ -29,6 +32,10 @@ export class AudioTrackBuffer {
       });
     });
     this.audioChunks.sort((left, right) => left.timestamp - right.timestamp);
+  }
+
+  getMp4aBox() {
+    return this.mp4aBox;
   }
 
   hasFrame(frame: EncodedAudioChunk): boolean {
@@ -67,6 +74,10 @@ export class AudioTrackBuffer {
     }
 
     return nextAudioChunks;
+  };
+
+  getAudioChunks = () => {
+    return this.audioChunks;
   };
 
   getCodecConfig = () => {

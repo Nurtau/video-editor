@@ -1,3 +1,5 @@
+import type { Box, MP4aBox } from "mp4box";
+
 interface Chunk {
   timestamp: number;
   duration?: number | null;
@@ -96,6 +98,10 @@ function isConsecutiveAudioFrame(
   return Math.abs(diff) <= VideoHelpers.getFrameTolerance(previous);
 }
 
+function isMp4aEntry(entry: Box): entry is MP4aBox {
+  return entry.type === "mp4a";
+}
+
 export const VideoHelpers = {
   isChunkInTime,
   formatTime,
@@ -107,4 +113,5 @@ export const VideoHelpers = {
   arrayRemove,
   arrayRemoveAt,
   isConsecutiveAudioFrame,
+  isMp4aEntry,
 };
