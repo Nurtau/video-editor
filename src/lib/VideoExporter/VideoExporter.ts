@@ -1,15 +1,20 @@
-import { createFile, type MP4File } from "mp4box";
+import { ISOFile } from "mp4box";
 
-import { VideoHelpers } from "./VideoHelpers";
-import { VideoFrameChanger } from "./VideoFrameChanger";
-import { VideoBox } from "./VideoBox";
+import { VideoHelpers } from "../VideoHelpers";
+import { VideoFrameChanger } from "../VideoFrameChanger";
+import { VideoBox } from "../VideoBox";
+import {
+  addSample,
+  addTrak,
+  createMP4File,
+  VIDEO_TIMESCALE,
+  AUDIO_TIMESCALE,
+} from "./MP4BoxHelpers";
 
 /*
  * IN SAFARI: exported video is huge in memory because chunk type is always key
  */
-
 const KEYFRAME_INTERVAL_MICROSECONDS = 4 * 1000 * 1000; // 4 seconds
-const TIMESCALE = 90000;
 
 interface VideoOptions {
   width: number;
@@ -24,6 +29,7 @@ interface CommonConfig {
 
 const QUEUE_WINDOW = 20;
 const MIN_QUEUE_THRESHOLD = 5;
+const INITIAL_CHUNK_OFFSET = 40;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -38,19 +44,30 @@ interface VideoExporterProps {
   onEmit(state: Partial<VideoExportProgressState>): void;
 }
 
+/*
+  VideoExporter has flaws:
+    - audio is not resampled, therefore audio with different sample rate turns slower or faster
+    - works incorrectly with videos without audio tracks, existing tracks shift to the left to fill empty space
+*/
+
 export class VideoExporter {
   private onEmit: VideoExporterProps["onEmit"];
-  private decoder: VideoDecoder;
-  private encoder: VideoEncoder;
-  private commonConfig: CommonConfig | null = null;
+  private videoDecoder: VideoDecoder;
+  private videoEncoder: VideoEncoder;
+  private videoCommonConfig: CommonConfig | null = null;
+  private videoDecoderConfig: VideoDecoderConfig | null = null;
   private nextKeyframeTs = 0;
-  private mp4File: MP4File;
-  private trackId: number | null = null;
+  private mp4File: typeof ISOFile;
+  private videoTrackId: number | null = null;
   private frameChanger: VideoFrameChanger;
   private videoBoxes: VideoBox[] = [];
   private encodingNums = 0;
   private encodedNums = 0;
-  private videoDecoderConfig: VideoDecoderConfig | null = null;
+
+  private audioTrackId: number | null = null;
+
+  private chunkOffset = INITIAL_CHUNK_OFFSET;
+  private isFirstVideoSample = true;
 
   static getDefaultState(): VideoExportProgressState {
     // just random numbers for initial state
@@ -65,13 +82,13 @@ export class VideoExporter {
   constructor({ onEmit }: VideoExporterProps) {
     this.onEmit = onEmit;
     this.frameChanger = new VideoFrameChanger();
-    this.mp4File = createFile();
-    this.decoder = new VideoDecoder({
-      output: this.onDecode,
+    this.mp4File = createMP4File();
+    this.videoDecoder = new VideoDecoder({
+      output: this.onVideoDecode,
       error: console.log,
     });
-    this.encoder = new VideoEncoder({
-      output: this.onEncode,
+    this.videoEncoder = new VideoEncoder({
+      output: this.onVideoEncode,
       error: console.log,
     });
   }
@@ -96,9 +113,9 @@ export class VideoExporter {
       height: options.height,
       width: options.width,
     };
-    this.commonConfig = config;
+    this.videoCommonConfig = config;
 
-    this.encoder.configure({
+    this.videoEncoder.configure({
       ...config,
       hardwareAcceleration: "prefer-hardware",
     });
@@ -130,7 +147,7 @@ export class VideoExporter {
         const { chunks, codecConfig } = decodingChunks;
 
         if (this.videoDecoderConfig !== codecConfig) {
-          this.decoder.configure(codecConfig);
+          this.videoDecoder.configure(codecConfig);
           this.videoDecoderConfig = codecConfig;
         }
 
@@ -153,7 +170,7 @@ export class VideoExporter {
             timestamp,
           });
 
-          this.decoder.decode(updatedChunk);
+          this.videoDecoder.decode(updatedChunk);
         });
 
         furthestDecodingVideoChunk = chunks[chunks.length - 1];
@@ -168,8 +185,47 @@ export class VideoExporter {
       }
     }
 
-    await this.decoder.flush();
-    await this.encoder.flush();
+    await this.videoDecoder.flush();
+    await this.videoEncoder.flush();
+
+    prefixTs = 0;
+    videoBoxIndex = 0;
+
+    let firstMp4aBox: any = null;
+    const allChunks: EncodedAudioChunk[] = [];
+
+    while (videoBoxIndex < this.videoBoxes.length) {
+      const videoBox = this.videoBoxes[videoBoxIndex];
+      const range = videoBox.getRange();
+
+      for (const audioTrack of videoBox.getAudioTrackBuffers().slice(0, 1)) {
+        const chunks = audioTrack
+          .getAudioChunks()
+          .filter(
+            (chunk) =>
+              chunk.timestamp / 1e6 >= range.start &&
+              (chunk.timestamp + chunk.duration!) / 1e6 <= range.end,
+          )
+          .map((chunk) =>
+            VideoHelpers.recreateAudioChunk(chunk, {
+              timestamp: chunk.timestamp + (prefixTs - range.start) * 1e6,
+            }),
+          );
+
+        if (chunks.length) {
+          firstMp4aBox = audioTrack.getMp4aBox();
+        }
+
+        allChunks.push(...chunks);
+      }
+
+      prefixTs += videoBox.getDurationInS();
+      videoBoxIndex += 1;
+    }
+
+    if (allChunks.length > 0) {
+      this.processAudioChunks(allChunks, firstMp4aBox);
+    }
 
     this.onEmit({
       exported: true,
@@ -182,14 +238,21 @@ export class VideoExporter {
   };
 
   reset = () => {
-    this.decoder.reset();
-    this.encoder.reset();
-    this.mp4File = createFile();
-    this.trackId = null;
+    this.videoDecoder.reset();
+    this.videoEncoder.reset();
+
+    this.videoDecoderConfig = null;
+
+    this.videoTrackId = null;
+    this.audioTrackId = null;
+
+    this.mp4File = createMP4File();
     this.nextKeyframeTs = 0;
     this.encodedNums = 0;
     this.encodingNums = 0;
-    this.videoDecoderConfig = null;
+
+    this.chunkOffset = INITIAL_CHUNK_OFFSET;
+    this.isFirstVideoSample = true;
   };
 
   private extractEncodingFramesNum = (boxes: VideoBox[]) => {
@@ -215,7 +278,33 @@ export class VideoExporter {
     return framesNum;
   };
 
-  private onDecode = async (frame: VideoFrame) => {
+  private processAudioChunks = (chunks: EncodedAudioChunk[], mp4aBox: any) => {
+    if (this.audioTrackId === null) {
+      this.audioTrackId = addTrak(this.mp4File, {
+        type: "audio",
+        mp4a: mp4aBox,
+      });
+    }
+
+    chunks.forEach((chunk) => {
+      const uint8 = new Uint8Array(chunk.byteLength);
+      chunk.copyTo(uint8);
+
+      const sampleDuration = (chunk.duration! * AUDIO_TIMESCALE) / 1_000_000;
+
+      this.chunkOffset = addSample(
+        this.mp4File,
+        this.audioTrackId,
+        uint8,
+        chunk.type === "key",
+        sampleDuration,
+        false,
+        this.chunkOffset,
+      );
+    });
+  };
+
+  private onVideoDecode = async (frame: VideoFrame) => {
     if (frame.timestamp < 0) {
       frame.close();
       return;
@@ -243,40 +332,49 @@ export class VideoExporter {
         processedFrame.timestamp + KEYFRAME_INTERVAL_MICROSECONDS;
     }
 
-    this.encoder.encode(processedFrame, { keyFrame });
+    this.videoEncoder.encode(processedFrame, { keyFrame });
     processedFrame.close();
   };
 
-  private onEncode = (
+  private onVideoEncode = (
     chunk: EncodedVideoChunk,
     metadata?: EncodedVideoChunkMetadata,
   ) => {
-    if (!this.commonConfig) {
+    if (!this.videoCommonConfig) {
       throw new Error("INTERNAL ERROR: commonConfig must be defined");
     }
 
     this.encodingNums -= 1;
     this.encodedNums += 1;
 
-    if (this.trackId === null) {
+    if (this.videoTrackId === null) {
       const description = metadata!.decoderConfig!.description;
-      this.trackId = this.mp4File.addTrack({
-        width: this.commonConfig.width,
-        height: this.commonConfig.height,
-        timescale: TIMESCALE,
+      this.videoTrackId = addTrak(this.mp4File, {
+        type: "video",
+        width: this.videoCommonConfig.width,
+        height: this.videoCommonConfig.height,
         avcDecoderConfigRecord: description,
       });
     }
 
     const uint8 = new Uint8Array(chunk.byteLength);
     chunk.copyTo(uint8);
+    const sampleDuration = (chunk.duration! * VIDEO_TIMESCALE) / 1_000_000;
 
-    const sampleDuration = (chunk.duration! * TIMESCALE) / 1_000_000;
+    this.chunkOffset = addSample(
+      this.mp4File,
+      this.videoTrackId,
+      uint8,
+      chunk.type === "key",
+      sampleDuration,
+      true,
+      this.chunkOffset,
+      this.isFirstVideoSample,
+    );
 
-    this.mp4File.addSample(this.trackId, uint8, {
-      duration: sampleDuration,
-      is_sync: chunk.type === "key",
-    });
+    if (this.isFirstVideoSample) {
+      this.isFirstVideoSample = false;
+    }
   };
 
   private getActiveVideoBoxAt(timeInS: number) {
