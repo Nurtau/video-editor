@@ -13,5 +13,7 @@ export const textStyles = style({
   fontSize: 18,
   color: tokens.colors["white80"],
   maxWidth: 700,
+  width: "100%",
+  paddingInline: tokens.spacings["4"],
   textAlign: "center",
 });
