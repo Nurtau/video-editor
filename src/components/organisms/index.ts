@@ -3,3 +3,4 @@ export * from "./VideoUploadSection";
 export * from "./VideoEffectsSection";
 export * from "./VideoExportSection";
 export * from "./VideoSettingsSection";
+export * from "./useVideoBoxesOnTimeline";

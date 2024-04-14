@@ -180,7 +180,7 @@ const extractPosition = (event: MouseEvent) => {
 
 interface TrimHandlerProps {
   timeToPx: number;
-  trackId: number;
+  trackId: string;
 }
 
 const TrimHandler = ({ timeToPx, trackId }: TrimHandlerProps) => {

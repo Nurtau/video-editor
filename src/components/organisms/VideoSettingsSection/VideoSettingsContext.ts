@@ -1,10 +1,5 @@
 import { createContext } from "react";
-import { type RatioKey } from "~/constants";
-
-export interface Settings {
-  ratio: RatioKey;
-  resolution: string;
-}
+import type { Settings } from "~/types";
 
 export interface VideoSettingsContextState {
   settings: Settings;

@@ -1,6 +1,7 @@
+import { nanoid } from "nanoid";
+
 import { VideoTrackBuffer } from "./VideoTrackBuffer";
 import { AudioTrackBuffer } from "./AudioTrackBuffer";
-import { generateId } from "./helpers";
 
 export interface VideoBoxEffects {
   blur: number;
@@ -14,17 +15,24 @@ export interface VideoBoxEffects {
 interface VideoBoxRange {
   start: number;
   end: number;
-  maxEnd: number;
+}
+
+export interface SerializableVideoBox {
+  resourceId: string;
+  effects: VideoBoxEffects;
+  range: VideoBoxRange;
 }
 
 interface VideoBoxProps {
+  resourceId: string; // id to get correspondent buffers
   videoTrackBuffers: VideoTrackBuffer[];
   audioTrackBuffers: AudioTrackBuffer[];
 }
 
 export class VideoBox {
-  public id = generateId();
+  public id = nanoid();
 
+  private resourceId: string;
   private videoTrackBuffers: VideoTrackBuffer[];
   private audioTrackBuffers: AudioTrackBuffer[];
   private range: VideoBoxRange;
@@ -42,11 +50,13 @@ export class VideoBox {
 
   constructor(props: VideoBoxProps | VideoBox) {
     if (props instanceof VideoBox) {
+      this.resourceId = props.getResourceId();
       this.videoTrackBuffers = props.getVideoTrackBuffers();
       this.audioTrackBuffers = props.getAudioTrackBuffers();
       this.range = props.getRange();
       this.effects = props.getEffects();
     } else {
+      this.resourceId = props.resourceId;
       // we take at maximum only one track as primary
       this.videoTrackBuffers = props.videoTrackBuffers.slice(0, 1);
       this.audioTrackBuffers = props.audioTrackBuffers.slice(0, 1);
@@ -60,7 +70,6 @@ export class VideoBox {
       this.range = {
         start: 0,
         end: maxDuration,
-        maxEnd: maxDuration,
       };
     }
   }
@@ -85,6 +94,18 @@ export class VideoBox {
 
     return [leftCopy, rightCopy];
   }
+
+  getSerializableObject = (): SerializableVideoBox => {
+    return {
+      resourceId: this.resourceId,
+      effects: this.effects,
+      range: this.range,
+    };
+  };
+
+  getResourceId = () => {
+    return this.resourceId;
+  };
 
   getVideoChunksDependencies = (timeInS: number) => {
     const timeInMicros = Math.floor((this.range.start + timeInS) * 1e6);

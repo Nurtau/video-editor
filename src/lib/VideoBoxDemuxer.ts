@@ -26,7 +26,10 @@ const extractSamples = (mp4File: MP4File, trackId: number) => {
   });
 };
 
-const processBuffer = async (buffer: ArrayBuffer): Promise<VideoBox> => {
+const processBuffer = async (
+  buffer: ArrayBuffer,
+  resourceId: string,
+): Promise<VideoBox> => {
   const mp4File = createFile();
 
   const infoPromise = new Promise<MP4Info>((resolve) => {
@@ -65,7 +68,7 @@ const processBuffer = async (buffer: ArrayBuffer): Promise<VideoBox> => {
     audioTrackBuffers.push(trackBuffer);
   }
 
-  return new VideoBox({ videoTrackBuffers, audioTrackBuffers });
+  return new VideoBox({ videoTrackBuffers, audioTrackBuffers, resourceId });
 };
 
 export const VideoBoxDemuxer = {

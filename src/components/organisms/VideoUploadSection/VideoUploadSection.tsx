@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { nanoid } from "nanoid";
 
 import { Button, FileUploadButton, useFileReader } from "~/components/atoms";
 import { VideoBoxDemuxer } from "~/lib/VideoBoxDemuxer";
 import { VideoBox } from "~/lib/VideoBox";
+import { storage } from "~/lib/Storage";
 
 import { VideoBoxItem, type VideoUploadBox } from "./VideoBoxItem";
 import { useVideoBoxes } from "./useVideoBoxes";
@@ -28,12 +30,14 @@ export const VideoUploadSection = ({
 
   const { readFile } = useFileReader({
     onOutput: async (name, data) => {
-      const box = await VideoBoxDemuxer.processBuffer(data);
+      const resourceId = nanoid();
+      storage.addVideoRawBox({ name, buffer: data, resourceId });
+      const box = await VideoBoxDemuxer.processBuffer(data, resourceId);
       setVideoBoxes([...videoBoxes, { innerBox: box, name }]);
     },
   });
 
-  const updateBoxFrame = (frame: VideoFrame, boxId: number) => {
+  const updateBoxFrame = (frame: VideoFrame, boxId: string) => {
     const nextVideoBoxes = videoBoxes.map((box) => {
       if (box.innerBox.id !== boxId) return box;
       return {

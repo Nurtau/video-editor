@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
-import { VideoBox } from "./lib/VideoBox";
 import { VideoController } from "./lib/VideoController";
-import { eventsBus } from "./lib/EventsBus";
 import { Layout, PlayerCanvas, Sidebar } from "./components/atoms";
 import {
   VideoUploadSection,
@@ -12,6 +10,7 @@ import {
   VideoSettingsSection,
   PlayerTimeline,
   useVideoSettings,
+  useVideoBoxesOnTimeline,
 } from "./components/organisms";
 import { PlayerControls, useActiveVideoBox } from "./components/molecules";
 
@@ -23,7 +22,9 @@ type SidebarKey =
 
 export const VideoEditor = () => {
   const { settings } = useVideoSettings();
-  const [videoBoxes, setVideoBoxes] = useState<VideoBox[]>([]);
+
+  const { videoBoxesOnTimeline, setVideoBoxesOnTimeline } =
+    useVideoBoxesOnTimeline();
 
   const [{ playing }, setControllerState] = useState(
     VideoController.buildDefaultState(),
@@ -52,47 +53,14 @@ export const VideoEditor = () => {
   useEffect(() => {
     if (!activeVideoBox) return;
 
-    if (!videoBoxes.includes(activeVideoBox)) {
+    if (!videoBoxesOnTimeline.includes(activeVideoBox)) {
       setActiveVideoBox(null);
     }
-  }, [activeVideoBox, videoBoxes]);
+  }, [activeVideoBox, videoBoxesOnTimeline]);
 
   useEffect(() => {
-    // @TODO: there is a room for optimisation, because modifiedVideoTrackId returns a changed track
-    return eventsBus.subscribe("modifiedVideoBoxId", () => {
-      setVideoBoxes((cur) => [...cur]);
-    });
-  }, []);
-
-  useEffect(() => {
-    return eventsBus.subscribe("deletedVideoBoxId", (id) => {
-      setVideoBoxes((curTracks) =>
-        curTracks.filter((track) => track.id !== id),
-      );
-    });
-  }, []);
-
-  useEffect(() => {
-    return eventsBus.subscribe("splittedVideoBox", ({ id, atTime }) => {
-      setVideoBoxes((curBoxes) => {
-        const nextBoxes: VideoBox[] = [];
-
-        curBoxes.forEach((box) => {
-          if (box.id === id) {
-            nextBoxes.push(...box.splitAt(atTime));
-          } else {
-            nextBoxes.push(box);
-          }
-        });
-
-        return nextBoxes;
-      });
-    });
-  }, []);
-
-  useEffect(() => {
-    controller.setVideoBoxes(videoBoxes);
-  }, [videoBoxes]);
+    controller.setVideoBoxes(videoBoxesOnTimeline);
+  }, [videoBoxesOnTimeline]);
 
   useHotkeys("right", () => controller.playForward(), []);
   useHotkeys("left", () => controller.playBackward(), []);
@@ -115,7 +83,7 @@ export const VideoEditor = () => {
               content: () => (
                 <VideoUploadSection
                   onMoveToTimeline={(box) => {
-                    setVideoBoxes((curBoxes) => {
+                    setVideoBoxesOnTimeline((curBoxes) => {
                       return [...curBoxes, box.copy()];
                     });
                   }}
@@ -137,7 +105,7 @@ export const VideoEditor = () => {
               key: "video-export",
               content: () => (
                 <VideoExportSection
-                  videoBoxes={videoBoxes}
+                  videoBoxes={videoBoxesOnTimeline}
                   onExportStart={() => {
                     controller.pause();
                   }}
@@ -149,7 +117,7 @@ export const VideoEditor = () => {
       </Layout.Controls>
       <Layout.Player>
         <PlayerCanvas ref={controller.setCanvasBox}>
-          {videoBoxes.length > 0 && (
+          {videoBoxesOnTimeline.length > 0 && (
             <PlayerControls
               playing={playing}
               play={controller.play}
@@ -161,7 +129,10 @@ export const VideoEditor = () => {
         </PlayerCanvas>
       </Layout.Player>
       <Layout.Track>
-        <PlayerTimeline videoBoxes={videoBoxes} seek={controller.seek} />
+        <PlayerTimeline
+          videoBoxes={videoBoxesOnTimeline}
+          seek={controller.seek}
+        />
       </Layout.Track>
     </Layout.Box>
   );

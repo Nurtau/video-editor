@@ -1,10 +1,10 @@
 interface BusEvents {
   currentTime: number;
   totalDuration: number;
-  modifiedVideoBoxId: number;
-  deletedVideoBoxId: number;
+  modifiedVideoBoxId: string;
+  deletedVideoBoxId: string;
   splittedVideoBox: {
-    id: number;
+    id: string;
     atTime: number;
   };
 }
