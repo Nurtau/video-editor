@@ -22,7 +22,7 @@ export const FeatureDetectionGuard = ({
   return (
     <div className={boxStyles}>
       <div className={textStyles}>
-        Unfortunately you can't access this video editor because your browsers
+        Unfortunately you can't access this video editor because your browser
         does not support at least one of {ESSENTIAL_FEATURES.join(", ")}{" "}
         features
       </div>
