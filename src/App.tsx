@@ -1,5 +1,6 @@
 import "./globalStyles.css";
 
+import { FeatureDetectionGuard } from "./components/atoms";
 import { ActiveVideoBoxProvider } from "./components/molecules";
 import {
   VideoBoxesProvider,
@@ -9,13 +10,15 @@ import { VideoEditor } from "./VideoEditor";
 
 function App() {
   return (
-    <VideoBoxesProvider>
-      <VideoSettingsProvider>
-        <ActiveVideoBoxProvider>
-          <VideoEditor />
-        </ActiveVideoBoxProvider>
-      </VideoSettingsProvider>
-    </VideoBoxesProvider>
+    <FeatureDetectionGuard>
+      <VideoBoxesProvider>
+        <VideoSettingsProvider>
+          <ActiveVideoBoxProvider>
+            <VideoEditor />
+          </ActiveVideoBoxProvider>
+        </VideoSettingsProvider>
+      </VideoBoxesProvider>
+    </FeatureDetectionGuard>
   );
 }
 

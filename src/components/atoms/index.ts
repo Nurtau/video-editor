@@ -7,3 +7,4 @@ export * from "./useFileReader";
 export * from "./OverlayButton";
 export * from "./Slider";
 export * from "./Icon";
+export * from "./FeatureDetectionGuard";
